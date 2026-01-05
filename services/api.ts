@@ -1,7 +1,7 @@
 
-import { Product, User, Order, CartItem } from '../types';
+import { Product, User, Order, CartItem, Design } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const api = {
   async getProducts(): Promise<Product[]> {
