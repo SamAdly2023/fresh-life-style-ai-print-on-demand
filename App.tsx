@@ -32,7 +32,12 @@ export const useApp = () => {
 };
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user from localStorage if available
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('fresh_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const googleLogin = useGoogleLogin({
@@ -47,13 +52,14 @@ const App: React.FC = () => {
           name: userInfo.name,
           email: userInfo.email,
           avatar: userInfo.picture,
-          isAdmin: false // Default, will be updated by syncUser
+          isAdmin: false
         };
 
         // Sync with backend and get actual role (now returns properly mapped User object)
         const syncedUser = await api.syncUser(userData);
         
         setUser(syncedUser);
+        localStorage.setItem('fresh_user', JSON.stringify(syncedUser));
 
       } catch (error) {
         console.error('Failed to fetch user info', error);
@@ -65,7 +71,10 @@ const App: React.FC = () => {
 
   const login = () => googleLogin();
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('fresh_user');
+  };
 
   const addToCart = (item: CartItem) => {
     setCart(prev => [...prev, { ...item, id: Math.random().toString(36).substr(2, 9) }]);
