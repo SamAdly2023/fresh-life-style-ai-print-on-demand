@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { Order, User } from '../types';
@@ -159,66 +158,6 @@ const AdminDashboard: React.FC = () => {
                  Analytics module coming soon.
              </div>
           )}
-        </div>
-      </div>
-    </div>
-  );
-};
-                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.trend.includes('+') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                   {stat.trend}
-                 </span>
-               </div>
-               <h3 className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">{stat.label}</h3>
-               <p className="text-3xl font-black">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Orders Table */}
-        <div className="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-gray-100">
-          <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-             <h3 className="text-xl font-black uppercase">Recent Orders</h3>
-             <button className="text-sm font-bold text-blue-500 hover:underline">View All Orders</button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black tracking-[0.2em]">
-                  <th className="px-8 py-4">Order ID</th>
-                  <th className="px-8 py-4">Customer</th>
-                  <th className="px-8 py-4">Item</th>
-                  <th className="px-8 py-4">Amount</th>
-                  <th className="px-8 py-4">Status</th>
-                  <th className="px-8 py-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-8 py-6 font-bold">{order.id}</td>
-                    <td className="px-8 py-6">{order.customer}</td>
-                    <td className="px-8 py-6">{order.item}</td>
-                    <td className="px-8 py-6 font-bold">{order.amount}</td>
-                    <td className="px-8 py-6">
-                       <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${
-                         order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                         order.status === 'Processing' ? 'bg-blue-100 text-blue-700' :
-                         order.status === 'Shipped' ? 'bg-purple-100 text-purple-700' :
-                         'bg-gray-100 text-gray-700'
-                       }`}>
-                         {order.status}
-                       </span>
-                    </td>
-                    <td className="px-8 py-6">
-                       <button className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-black hover:text-white transition-all">
-                          <i className="fa-solid fa-ellipsis-vertical"></i>
-                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </div>
