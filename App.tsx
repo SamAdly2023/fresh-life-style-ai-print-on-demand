@@ -50,21 +50,14 @@ const App: React.FC = () => {
           isAdmin: false // Default, will be updated by syncUser
         };
 
-        // Sync with backend and get actual role
+        // Sync with backend and get actual role (now returns properly mapped User object)
         const syncedUser = await api.syncUser(userData);
         
-        // Map backend response (snake_case from DB) to frontend model if needed
-        // But our API returns what we sent mostly, except is_admin might be is_admin in DB
-        // Let's assume the backend returns the user object.
-        // We need to handle the mapping if the DB returns snake_case.
-        
-        setUser({
-            ...userData,
-            isAdmin: (syncedUser as any).is_admin // DB returns is_admin
-        });
+        setUser(syncedUser);
 
       } catch (error) {
         console.error('Failed to fetch user info', error);
+        alert('Login failed. Please check your connection or try again.');
       }
     },
     onError: errorResponse => console.log(errorResponse),

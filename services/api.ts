@@ -49,10 +49,23 @@ export const api = {
     const res = await fetch(`${API_URL}/users`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(user),
+      body: JSON.stringify({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar_url: user.avatar,
+        is_admin: user.isAdmin
+      }),
     });
     if (!res.ok) throw new Error('Failed to sync user');
-    return res.json();
+    const data = await res.json();
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      avatar: data.avatar_url,
+      isAdmin: data.is_admin
+    };
   },
 
   async createOrder(order: Order): Promise<void> {
