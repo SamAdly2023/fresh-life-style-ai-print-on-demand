@@ -5,13 +5,15 @@ import { useApp } from '../App';
 
 interface DesignEditorProps {
   initialImageUrl?: string;
+  initialDesignId?: string;
 }
 
-const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl }) => {
+const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDesignId }) => {
   const { addToCart } = useApp();
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedSize, setSelectedSize] = useState(SIZES[1]);
   const [designUrl, setDesignUrl] = useState(initialImageUrl || '');
+  const [designId, setDesignId] = useState(initialDesignId || undefined);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleAddToCart = () => {
@@ -20,9 +22,10 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl }) => {
     addToCart({
       id: '',
       productId: 'p1', // Default Premium Tee
+      designId: designId,
       customDesignUrl: designUrl,
       quantity: 1,
-      size: selectedSize as any,
+      size: selectedSize,
       color: selectedColor.name
     });
 

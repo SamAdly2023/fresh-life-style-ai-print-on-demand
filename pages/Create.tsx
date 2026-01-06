@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DesignEditor from '../components/DesignEditor';
 import { geminiService } from '../services/gemini';
 import { api } from '../services/api';
@@ -10,10 +10,20 @@ import { AppRoute } from '../types';
 const Create: React.FC = () => {
   const { user, addToCart, login } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | undefined>(undefined);
+  const [generatedDesignId, setGeneratedDesignId] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<'selection' | 'editor'>('selection');
+
+  useEffect(() => {
+    if (location.state?.selectedDesign) {
+       setGeneratedImage(location.state.selectedDesign.imageUrl);
+       setGeneratedDesignId(location.state.selectedDesign.id);
+       setMode('editor');
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (!user) {
@@ -44,21 +54,12 @@ const Create: React.FC = () => {
               isAI: true
             });
             designId = newDesign.id;
+            setGeneratedDesignId(designId);
         } catch (error) {
             console.error("Error saving to gallery:", error);
         }
 
-        // Auto-add to Cart
-        addToCart({
-          id: Math.random().toString(36).substr(2, 9),
-          productId: 'prod_ai_custom', 
-          designId: designId,
-          customDesignUrl: result,
-          quantity: 1,
-          size: 'L',
-          color: 'White'
-        });
-
+        // setMode('editor') handles the transition to customization
         setMode('editor');
       } else {
         alert("Something went wrong with AI generation. Please try again.");
@@ -81,7 +82,7 @@ const Create: React.FC = () => {
           >
             <i className="fa-solid fa-arrow-left mr-2"></i> Back to Selection
           </button>
-          <DesignEditor initialImageUrl={generatedImage} />
+          <DesignEditor initialImageUrl={generatedImage} initialDesignId={generatedDesignId} />
         </div>
       </div>
     );

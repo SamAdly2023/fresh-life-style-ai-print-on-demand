@@ -66,7 +66,10 @@ const App: React.FC = () => {
         alert('Login failed. Please check your connection or try again.');
       }
     },
-    onError: errorResponse => console.log(errorResponse),
+    onError: errorResponse => {
+        console.error("Google Login Error:", errorResponse);
+        alert(`Login failed: ${errorResponse.error_description || errorResponse.error || 'Unknown error'}. Please check your Google Client ID configuration.`);
+    },
   });
 
   const login = () => googleLogin();

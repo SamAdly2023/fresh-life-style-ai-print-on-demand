@@ -49,6 +49,7 @@ const Gallery: React.FC = () => {
                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <Link 
                       to={AppRoute.CREATE}
+                      state={{ selectedDesign: design }}
                       className="bg-white text-black px-6 py-3 rounded-full font-bold text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform"
                     >
                       Use Design
