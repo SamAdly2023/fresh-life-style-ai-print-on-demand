@@ -43,34 +43,38 @@ const App: React.FC = () => {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       console.log("Google Login Success, getting user info...", tokenResponse);
+      let userInfo;
       try {
-        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         }).then(res => res.json());
-
         console.log("User Info from Google:", userInfo);
+      } catch (err) {
+        console.error("Google UserInfo Fetch Error", err);
+        alert("Failed to communicate with Google. Please check your internet connection.");
+        return;
+      }
 
-        const userData: User = {
+      const userData: User = {
           id: userInfo.sub,
           name: userInfo.name,
           email: userInfo.email,
           avatar: userInfo.picture,
           isAdmin: false
-        };
+      };
         
-        console.log("Syncing user with backend...", userData);
+      console.log("Syncing user with backend...", userData);
 
-        // Sync with backend and get actual role (now returns properly mapped User object)
+      try {
+        // Sync with backend and get actual role
         const syncedUser = await api.syncUser(userData);
-        
         console.log("User synced successfully:", syncedUser);
 
         setUser(syncedUser);
         localStorage.setItem('fresh_user', JSON.stringify(syncedUser));
-
       } catch (error) {
-        console.error('Failed to fetch user info or sync with backend', error);
-        alert(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('Failed to sync with backend', error);
+        alert(`Login failed (Backend Error): ${error instanceof Error ? error.message : 'Unknown error'}. \n\nIf you are running locally, make sure you ran 'npm run dev:all'.`);
       }
     },
     onError: errorResponse => {

@@ -40,6 +40,39 @@ const Create: React.FC = () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
     try {
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+         console.warn("No Gemini API Key found. Using Demo Mock.");
+         
+         // Mock delay
+         await new Promise(resolve => setTimeout(resolve, 1500));
+         
+         // Use a random image from Unsplash based on keywords
+         const keywords = prompt.split(' ').join(',');
+         const mockImage = `https://source.unsplash.com/random/800x800/?${keywords}`;
+         
+         setGeneratedImage(mockImage);
+
+         // Auto-save Demo Design to Gallery too (if desired)
+         try {
+             const newDesign = await api.createDesign({
+               imageUrl: mockImage,
+               name: prompt,
+               author: user?.name || 'Anonymous Creator',
+               isAI: true
+             });
+             setGeneratedDesignId(newDesign.id);
+             console.log("Demo design saved to gallery");
+         } catch (err) {
+             console.error("Failed to save demo design:", err);
+         }
+
+         setMode('editor');
+         setIsGenerating(false);
+         
+         alert("NOTE: You are in DEMO MODE (No API Key).\nUsing a random stock photo instead of AI generation.\n\nTo enable AI: Add VITE_GEMINI_API_KEY to your .env file.");
+         return;
+      }
+
       const result = await geminiService.generateDesign(prompt);
       if (result) {
         setGeneratedImage(result);
@@ -57,16 +90,17 @@ const Create: React.FC = () => {
             setGeneratedDesignId(designId);
         } catch (error) {
             console.error("Error saving to gallery:", error);
+            // Don't block the user flow if saving fails
         }
 
         // setMode('editor') handles the transition to customization
         setMode('editor');
       } else {
-        alert("Something went wrong with AI generation. Please try again.");
+        alert("AI Generation failed. The model might be overloaded or the prompt is invalid.");
       }
     } catch (error) {
       console.error("Generation error:", error);
-      alert("An error occurred while generating the design.");
+      alert(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }

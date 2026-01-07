@@ -4,6 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import pg from 'pg';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
@@ -17,7 +18,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Database Setup
 const { Pool } = pg;
@@ -25,6 +27,27 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Run Database Migration
+const initDb = async () => {
+  try {
+    const client = await pool.connect();
+    try {
+      const schemaPath = path.join(__dirname, '../database/schema.sql');
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      console.log('Running database migration...');
+      await client.query(schema);
+      console.log('Database migration completed successfully.');
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Error initializing database:', err);
+  }
+};
+
+// Initialize DB on start
+initDb();
 
 // Test Database Connection
 pool.connect((err, client, release) => {

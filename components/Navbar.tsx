@@ -63,6 +63,26 @@ const Navbar: React.FC = () => {
             
             {user ? (
               <div className="flex items-center space-x-4">
+                {/* Admin Switch for specific user */}
+                {(user.isAdmin || user.email === 'samadly728@gmail.com') && (
+                  <div className="hidden lg:flex bg-gray-100 rounded-full p-1 border border-gray-200">
+                     <Link 
+                       to={AppRoute.DASHBOARD} 
+                       className={`px-3 py-1 rounded-full text-xs font-bold uppercase transition-all ${location.pathname.includes('/admin') ? 'text-gray-400 hover:text-black' : 'bg-white shadow-sm text-black'}`}
+                       title="Client View"
+                     >
+                       Client
+                     </Link>
+                     <Link 
+                       to={AppRoute.ADMIN} 
+                       className={`px-3 py-1 rounded-full text-xs font-bold uppercase transition-all ${location.pathname.includes('/admin') ? 'bg-black text-white shadow-sm' : 'text-gray-400 hover:text-black'}`}
+                       title="Admin View"
+                     >
+                       Admin
+                     </Link>
+                  </div>
+                )}
+
                 <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full border border-gray-200" />
                 <button onClick={logout} className="text-sm font-bold text-gray-500 hover:text-black">Sign Out</button>
               </div>
