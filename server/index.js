@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 import { createPrintfulOrder } from './services/printful.js';
+import { sendWelcomeEmail, sendOrderConfirmation, sendOrderShipped } from './services/email.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,7 +46,17 @@ const initDb = async () => {
         await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address jsonb;`);
         console.log("Migration: Check usage of shipping_address column - OK");
       } catch (colErr) {
-        console.warn("Migration: Error adding shipping_address column (might already exist or not supported):", colErr.message);
+        console.warn("Migration: Error adding shipping_address column:", colErr.message);
+      }
+
+      // Add tracking columns
+      try {
+        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number text;`);
+        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_url text;`);
+        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS printful_order_id text;`);
+        console.log("Migration: Check usage of tracking columns - OK");
+      } catch (colErr) {
+          console.warn("Migration: Error adding tracking columns:", colErr.message);
       }
 
       console.log('Database migration completed successfully.');
@@ -139,6 +150,9 @@ app.post('/api/users', async (req, res) => {
         'INSERT INTO users (id, email, name, avatar_url, is_admin) VALUES ($1, $2, $3, $4, $5)',
         [id, email, name, avatar_url, shouldBeAdmin]
       );
+
+      // Send Welcome Email
+      sendWelcomeEmail({ name, email }).catch(console.error);
     }
     
     // Return the user data so frontend has the correct role
@@ -228,11 +242,16 @@ app.post('/api/orders', async (req, res) => {
     if (shipping_address) {
        console.log("Creating Printful Order...");
        try {
-         await createPrintfulOrder({
+         const podOrder = await createPrintfulOrder({
            shippingAddress: shipping_address,
            items: items
          });
-         console.log("Printful Order Created (or Mocked)");
+         
+         if (podOrder && podOrder.id) {
+             // Save Printful ID for tracking
+             await client.query('UPDATE orders SET printful_order_id = $1 WHERE id = $2', [podOrder.id, orderId]);
+         }
+         console.log("Printful Order Created (or Mocked)", podOrder?.id);
        } catch (podError) {
          console.error("Printful Error:", podError);
          // Do not fail the transaction, just log it. Admin can retry manually.
@@ -240,6 +259,14 @@ app.post('/api/orders', async (req, res) => {
     }
 
     await client.query('COMMIT');
+    
+    // Send Confirmation Email (Async)
+    // Fetch user email first
+    const userRes = await client.query('SELECT * FROM users WHERE id = $1', [user_id]);
+    if (userRes.rows[0]) {
+        sendOrderConfirmation(userRes.rows[0], orderId, total_amount).catch(console.error);
+    }
+
     res.status(201).json({ message: 'Order created', orderId });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -287,6 +314,43 @@ app.post('/api/designs', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Webhook for Printful Updates
+app.post('/api/webhooks/printful', async (req, res) => {
+    const { type, data } = req.body;
+    console.log("Received Printful Webhook:", type);
+
+    if (type === 'package_shipped') {
+        const { order, shipment } = data;
+        const printfulOrderId = order.id;
+        const trackingNumber = shipment.tracking_number;
+        const trackingUrl = shipment.tracking_url;
+
+        // Update DB
+        try {
+            const result = await pool.query(
+                `UPDATE orders 
+                 SET status = 'shipped', tracking_number = $1, tracking_url = $2 
+                 WHERE printful_order_id = $3 
+                 RETURNING *`,
+                [trackingNumber, trackingUrl, String(printfulOrderId)]
+            );
+
+            if (result.rows.length > 0) {
+                const order = result.rows[0];
+                // Fetch User to send email
+                const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
+                if (userRes.rows[0]) {
+                    sendOrderShipped(userRes.rows[0], order.id, trackingNumber, trackingUrl).catch(console.error);
+                }
+            }
+        } catch (err) {
+            console.error("Webhook update failed:", err);
+        }
+    }
+
+    res.json({ received: true });
 });
 
 // Serve static files from the React app

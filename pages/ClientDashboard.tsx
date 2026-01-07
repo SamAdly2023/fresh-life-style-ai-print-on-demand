@@ -34,9 +34,9 @@ const ClientDashboard: React.FC = () => {
               <div className="flex justify-between items-center mb-4 border-b pb-4">
                 <div>
                   <p className="text-sm text-gray-500">Order ID</p>
-                  <p className="font-mono font-bold">{order.id}</p>
+                  <p className="font-mono font-bold text-sm md:text-base">{order.id}</p>
                 </div>
-                <div className="text-right">
+                <div className="hidden md:block text-right">
                   <p className="text-sm text-gray-500">Date</p>
                   <p className="font-bold">{new Date(order.created_at || '').toLocaleDateString()}</p>
                 </div>
@@ -51,6 +51,20 @@ const ClientDashboard: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              {(order as any).tracking_number && (
+                  <div className="mb-4 bg-gray-50 p-4 rounded-xl flex justify-between items-center">
+                      <div>
+                          <p className="text-xs font-bold text-gray-400 uppercase">Tracking Number</p>
+                          <p className="font-mono font-bold text-blue-600">{(order as any).tracking_number}</p>
+                      </div>
+                      {(order as any).tracking_url && (
+                          <a href={(order as any).tracking_url} target="_blank" rel="noopener noreferrer" className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-100">
+                             Track Package
+                          </a>
+                      )}
+                  </div>
+              )}
               
               <div className="space-y-4">
                 {order.items?.map((item: any) => (
