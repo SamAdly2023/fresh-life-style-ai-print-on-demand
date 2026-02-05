@@ -6,8 +6,6 @@ services:
     buildCommand: npm run render-build
     startCommand: npm start
     envVars:
-      - key: DATABASE_URL
-        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: NODE_VERSION

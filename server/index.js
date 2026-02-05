@@ -2,12 +2,13 @@
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import pg from 'pg';
+import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
+import { randomUUID } from 'crypto';
 
 import { createPrintfulOrder } from './services/printful.js';
 import { sendWelcomeEmail, sendOrderConfirmation, sendOrderShipped } from './services/email.js';
@@ -52,10 +53,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 
       // Update order status to paid
       try {
-        await pool.query(
-          `UPDATE orders SET status = 'paid' WHERE stripe_payment_intent_id = $1`,
-          [paymentIntent.id]
-        );
+        db.prepare(`UPDATE orders SET status = 'paid' WHERE stripe_payment_intent_id = ?`).run(paymentIntent.id);
       } catch (err) {
         console.error('Failed to update order status:', err);
       }
@@ -67,10 +65,7 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 
       // Update order status to failed
       try {
-        await pool.query(
-          `UPDATE orders SET status = 'payment_failed' WHERE stripe_payment_intent_id = $1`,
-          [failedPayment.id]
-        );
+        db.prepare(`UPDATE orders SET status = 'payment_failed' WHERE stripe_payment_intent_id = ?`).run(failedPayment.id);
       } catch (err) {
         console.error('Failed to update order status:', err);
       }
@@ -86,54 +81,82 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-// Database Setup
-const { Pool } = pg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Database Setup - SQLite
+const dbPath = path.join(__dirname, 'database.sqlite');
+const db = new Database(dbPath);
+
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
 
 // Run Database Migration
-const initDb = async () => {
+const initDb = () => {
   try {
-    const client = await pool.connect();
-    try {
-      const schemaPath = path.join(__dirname, '../database/schema.sql');
-      const schema = fs.readFileSync(schemaPath, 'utf8');
-      console.log('Running database migration...');
-      await client.query(schema);
+    console.log('Running database migration...');
 
-      // Add shipping_address column if it doesn't exist
-      try {
-        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address jsonb;`);
-        console.log("Migration: Check usage of shipping_address column - OK");
-      } catch (colErr) {
-        console.warn("Migration: Error adding shipping_address column:", colErr.message);
-      }
+    // Create tables
+    db.exec(`
+      -- USERS TABLE
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT,
+        avatar_url TEXT,
+        is_admin INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
 
-      // Add tracking columns
-      try {
-        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number text;`);
-        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_url text;`);
-        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS printful_order_id text;`);
-        console.log("Migration: Check usage of tracking columns - OK");
-      } catch (colErr) {
-        console.warn("Migration: Error adding tracking columns:", colErr.message);
-      }
+      -- PRODUCTS TABLE
+      CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        name TEXT NOT NULL,
+        description TEXT,
+        price REAL NOT NULL,
+        base_image_url TEXT NOT NULL,
+        category TEXT CHECK (category IN ('tshirt', 'hoodie')),
+        created_at TEXT DEFAULT (datetime('now'))
+      );
 
-      // Add Stripe payment columns
-      try {
-        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_payment_intent_id text;`);
-        await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_client_secret text;`);
-        console.log("Migration: Check usage of Stripe columns - OK");
-      } catch (colErr) {
-        console.warn("Migration: Error adding Stripe columns:", colErr.message);
-      }
+      -- DESIGNS TABLE
+      CREATE TABLE IF NOT EXISTS designs (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        name TEXT NOT NULL,
+        author TEXT NOT NULL,
+        image_url TEXT NOT NULL,
+        is_ai INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
 
-      console.log('Database migration completed successfully.');
-    } finally {
-      client.release();
-    }
+      -- ORDERS TABLE
+      CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        user_id TEXT REFERENCES users(id),
+        total_amount REAL NOT NULL,
+        status TEXT CHECK (status IN ('pending', 'processing', 'shipped', 'delivered', 'paid', 'payment_failed')) DEFAULT 'pending',
+        shipping_address TEXT,
+        tracking_number TEXT,
+        tracking_url TEXT,
+        printful_order_id TEXT,
+        stripe_payment_intent_id TEXT,
+        stripe_client_secret TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      -- ORDER ITEMS TABLE
+      CREATE TABLE IF NOT EXISTS order_items (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+        order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
+        product_id TEXT REFERENCES products(id),
+        design_id TEXT REFERENCES designs(id),
+        custom_design_url TEXT,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        size TEXT NOT NULL,
+        color TEXT NOT NULL,
+        price_at_purchase REAL NOT NULL
+      );
+    `);
+
+    console.log('Database migration completed successfully.');
+    console.log('SQLite database location:', dbPath);
   } catch (err) {
     console.error('Error initializing database:', err);
   }
@@ -142,31 +165,17 @@ const initDb = async () => {
 // Initialize DB on start
 initDb();
 
-// Test Database Connection
-pool.connect((err, client, release) => {
-  if (err) {
-    return console.error('Error acquiring client', err.stack);
-  }
-  client.query('SELECT NOW()', (err, result) => {
-    release();
-    if (err) {
-      return console.error('Error executing query', err.stack);
-    }
-    console.log('Connected to Database at:', result.rows[0].now);
-  });
-});
-
 // Routes
 
 // GET /api/health (Check if backend is running)
-app.get('/api/health', async (req, res) => {
+app.get('/api/health', (req, res) => {
   try {
-    const result = await pool.query('SELECT NOW()');
+    const result = db.prepare('SELECT datetime("now") as now').get();
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      database: 'connected',
-      dbTime: result.rows[0].now
+      database: 'connected (SQLite)',
+      dbTime: result.now
     });
   } catch (error) {
     res.json({
@@ -179,72 +188,68 @@ app.get('/api/health', async (req, res) => {
 });
 
 // GET /api/products
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products');
-    res.json(result.rows);
+    const result = db.prepare('SELECT * FROM products').all();
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // POST /api/products (Admin only - simplified)
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', (req, res) => {
   const { id, name, description, price, base_image_url, category } = req.body;
   try {
-    // Note: id is optional if using UUID generation in DB, but we'll keep it if provided
-    // If id is provided, we use it. If not, we let the DB generate it (if configured).
-    // Based on schema.sql, id is uuid default uuid_generate_v4().
-    // But the frontend might be sending an ID.
+    const productId = id || randomUUID();
+    const stmt = db.prepare(
+      'INSERT INTO products (id, name, description, price, base_image_url, category) VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    stmt.run(productId, name, description, price, base_image_url, category);
 
-    let query = 'INSERT INTO products (name, description, price, base_image_url, category) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-    let values = [name, description, price, base_image_url, category];
-
-    if (id) {
-      query = 'INSERT INTO products (id, name, description, price, base_image_url, category) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *';
-      values = [id, name, description, price, base_image_url, category];
-    }
-
-    const result = await pool.query(query, values);
-    res.status(201).json(result.rows[0]);
+    const result = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
+    res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // POST /api/users (Login/Register)
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', (req, res) => {
   console.log('Received login request:', req.body);
   const { id, email, name, avatar_url, is_admin } = req.body;
   try {
-    const existingUser = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
 
     // Auto-admin logic
-    const shouldBeAdmin = email === 'samadly728@gmail.com' || is_admin;
+    const shouldBeAdmin = email === 'samadly728@gmail.com' || is_admin ? 1 : 0;
 
-    if (existingUser.rows.length > 0) {
+    if (existingUser) {
       // Update existing user
       console.log('Updating existing user:', id);
-      await pool.query(
-        'UPDATE users SET name = $1, avatar_url = $2, email = $3, is_admin = $4 WHERE id = $5',
-        [name, avatar_url, email, shouldBeAdmin, id]
-      );
+      db.prepare(
+        'UPDATE users SET name = ?, avatar_url = ?, email = ?, is_admin = ? WHERE id = ?'
+      ).run(name, avatar_url, email, shouldBeAdmin, id);
     } else {
       // Create new user
       console.log('Creating new user:', id);
-      await pool.query(
-        'INSERT INTO users (id, email, name, avatar_url, is_admin) VALUES ($1, $2, $3, $4, $5)',
-        [id, email, name, avatar_url, shouldBeAdmin]
-      );
+      db.prepare(
+        'INSERT INTO users (id, email, name, avatar_url, is_admin) VALUES (?, ?, ?, ?, ?)'
+      ).run(id, email, name, avatar_url, shouldBeAdmin);
 
       // Send Welcome Email
       sendWelcomeEmail({ name, email }).catch(console.error);
     }
 
     // Return the user data so frontend has the correct role
-    const updatedUser = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-    console.log('Returning user data:', updatedUser.rows[0]);
-    res.json(updatedUser.rows[0]);
+    const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    console.log('Returning user data:', updatedUser);
+
+    // Convert SQLite integer to boolean for is_admin
+    res.json({
+      ...updatedUser,
+      is_admin: updatedUser.is_admin === 1
+    });
   } catch (error) {
     console.error('Database error in /api/users:', error);
     res.status(500).json({ error: error.message });
@@ -252,24 +257,29 @@ app.post('/api/users', async (req, res) => {
 });
 
 // GET /api/admin/users
-app.get('/api/admin/users', async (req, res) => {
+app.get('/api/admin/users', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
-    res.json(result.rows);
+    const result = db.prepare('SELECT * FROM users ORDER BY created_at DESC').all();
+    res.json(result.map(u => ({ ...u, is_admin: u.is_admin === 1 })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // GET /api/admin/orders
-app.get('/api/admin/orders', async (req, res) => {
+app.get('/api/admin/orders', (req, res) => {
   try {
-    const ordersResult = await pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-    const orders = ordersResult.rows;
+    const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
 
     for (const order of orders) {
-      const itemsResult = await pool.query('SELECT * FROM order_items WHERE order_id = $1', [order.id]);
-      order.items = itemsResult.rows;
+      const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+      order.items = items;
+      // Parse shipping_address JSON
+      if (order.shipping_address) {
+        try {
+          order.shipping_address = JSON.parse(order.shipping_address);
+        } catch (e) { }
+      }
     }
     res.json(orders);
   } catch (error) {
@@ -313,42 +323,39 @@ app.post('/api/create-payment-intent', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   const { id, user_id, total_amount, items, shipping_address, stripe_payment_intent_id } = req.body;
 
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
+  const transaction = db.transaction(() => {
     // Insert Order
-    let orderId = id;
-    if (orderId) {
-      await client.query(
-        'INSERT INTO orders (id, user_id, total_amount, shipping_address, stripe_payment_intent_id, status) VALUES ($1, $2, $3, $4, $5, $6)',
-        [orderId, user_id, total_amount, JSON.stringify(shipping_address), stripe_payment_intent_id, stripe_payment_intent_id ? 'paid' : 'pending']
-      );
-    } else {
-      const orderRes = await client.query(
-        'INSERT INTO orders (user_id, total_amount, shipping_address, stripe_payment_intent_id, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-        [user_id, total_amount, JSON.stringify(shipping_address), stripe_payment_intent_id, stripe_payment_intent_id ? 'paid' : 'pending']
-      );
-      orderId = orderRes.rows[0].id;
-    }
+    const orderId = id || randomUUID();
+    const status = stripe_payment_intent_id ? 'paid' : 'pending';
+
+    db.prepare(
+      'INSERT INTO orders (id, user_id, total_amount, shipping_address, stripe_payment_intent_id, status) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(orderId, user_id, total_amount, JSON.stringify(shipping_address), stripe_payment_intent_id, status);
 
     // Insert Order Items
+    const insertItem = db.prepare(
+      'INSERT INTO order_items (id, order_id, product_id, quantity, size, color, price_at_purchase) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+
     for (const item of items) {
-      await client.query(
-        'INSERT INTO order_items (order_id, product_id, quantity, size, color, price_at_purchase) VALUES ($1, $2, $3, $4, $5, $6)',
-        [
-          orderId,
-          item.productId,
-          item.quantity,
-          item.size,
-          item.color,
-          item.price || 29.99 // Fallback
-        ]
+      insertItem.run(
+        randomUUID(),
+        orderId,
+        item.productId,
+        item.quantity,
+        item.size,
+        item.color,
+        item.price || 29.99
       );
     }
 
-    // Trigger Printful Order
+    return orderId;
+  });
+
+  try {
+    const orderId = transaction();
+
+    // Trigger Printful Order (async, outside transaction)
     if (shipping_address) {
       console.log("Creating Printful Order...");
       try {
@@ -359,42 +366,39 @@ app.post('/api/orders', async (req, res) => {
 
         if (podOrder && podOrder.id) {
           // Save Printful ID for tracking
-          await client.query('UPDATE orders SET printful_order_id = $1 WHERE id = $2', [podOrder.id, orderId]);
+          db.prepare('UPDATE orders SET printful_order_id = ? WHERE id = ?').run(podOrder.id, orderId);
         }
         console.log("Printful Order Created (or Mocked)", podOrder?.id);
       } catch (podError) {
         console.error("Printful Error:", podError);
-        // Do not fail the transaction, just log it. Admin can retry manually.
       }
     }
 
-    await client.query('COMMIT');
-
     // Send Confirmation Email (Async)
-    // Fetch user email first
-    const userRes = await client.query('SELECT * FROM users WHERE id = $1', [user_id]);
-    if (userRes.rows[0]) {
-      sendOrderConfirmation(userRes.rows[0], orderId, total_amount).catch(console.error);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
+    if (user) {
+      sendOrderConfirmation(user, orderId, total_amount).catch(console.error);
     }
 
     res.status(201).json({ message: 'Order created', orderId });
   } catch (error) {
-    await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });
-  } finally {
-    client.release();
   }
 });
 
 // GET /api/orders/:userId
-app.get('/api/orders/:userId', async (req, res) => {
+app.get('/api/orders/:userId', (req, res) => {
   try {
-    const ordersResult = await pool.query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC', [req.params.userId]);
-    const orders = ordersResult.rows;
+    const orders = db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC').all(req.params.userId);
 
     for (const order of orders) {
-      const itemsResult = await pool.query('SELECT * FROM order_items WHERE order_id = $1', [order.id]);
-      order.items = itemsResult.rows;
+      const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+      order.items = items;
+      if (order.shipping_address) {
+        try {
+          order.shipping_address = JSON.parse(order.shipping_address);
+        } catch (e) { }
+      }
     }
     res.json(orders);
   } catch (error) {
@@ -403,31 +407,33 @@ app.get('/api/orders/:userId', async (req, res) => {
 });
 
 // GET /api/designs
-app.get('/api/designs', async (req, res) => {
+app.get('/api/designs', (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM designs ORDER BY created_at DESC');
-    res.json(result.rows);
+    const result = db.prepare('SELECT * FROM designs ORDER BY created_at DESC').all();
+    res.json(result.map(d => ({ ...d, is_ai: d.is_ai === 1 })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // POST /api/designs
-app.post('/api/designs', async (req, res) => {
+app.post('/api/designs', (req, res) => {
   const { name, author, image_url, is_ai } = req.body;
   try {
-    const result = await pool.query(
-      'INSERT INTO designs (name, author, image_url, is_ai) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, author, image_url, is_ai]
-    );
-    res.status(201).json(result.rows[0]);
+    const designId = randomUUID();
+    db.prepare(
+      'INSERT INTO designs (id, name, author, image_url, is_ai) VALUES (?, ?, ?, ?, ?)'
+    ).run(designId, name, author, image_url, is_ai ? 1 : 0);
+
+    const result = db.prepare('SELECT * FROM designs WHERE id = ?').get(designId);
+    res.status(201).json({ ...result, is_ai: result.is_ai === 1 });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Webhook for Printful Updates
-app.post('/api/webhooks/printful', async (req, res) => {
+app.post('/api/webhooks/printful', (req, res) => {
   const { type, data } = req.body;
   console.log("Received Printful Webhook:", type);
 
@@ -439,20 +445,17 @@ app.post('/api/webhooks/printful', async (req, res) => {
 
     // Update DB
     try {
-      const result = await pool.query(
-        `UPDATE orders 
-                 SET status = 'shipped', tracking_number = $1, tracking_url = $2 
-                 WHERE printful_order_id = $3 
-                 RETURNING *`,
-        [trackingNumber, trackingUrl, String(printfulOrderId)]
-      );
+      const result = db.prepare(
+        `UPDATE orders SET status = 'shipped', tracking_number = ?, tracking_url = ? WHERE printful_order_id = ?`
+      ).run(trackingNumber, trackingUrl, String(printfulOrderId));
 
-      if (result.rows.length > 0) {
-        const order = result.rows[0];
-        // Fetch User to send email
-        const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [order.user_id]);
-        if (userRes.rows[0]) {
-          sendOrderShipped(userRes.rows[0], order.id, trackingNumber, trackingUrl).catch(console.error);
+      if (result.changes > 0) {
+        const updatedOrder = db.prepare('SELECT * FROM orders WHERE printful_order_id = ?').get(String(printfulOrderId));
+        if (updatedOrder) {
+          const user = db.prepare('SELECT * FROM users WHERE id = ?').get(updatedOrder.user_id);
+          if (user) {
+            sendOrderShipped(user, updatedOrder.id, trackingNumber, trackingUrl).catch(console.error);
+          }
         }
       }
     } catch (err) {
@@ -474,4 +477,5 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Database: SQLite (${dbPath})`);
 });
