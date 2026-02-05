@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 interface StripeCheckoutFormProps {
-  onSuccess: () => void;
+  clientSecret: string;
+  onSuccess: (paymentIntentId: string) => void;
+  onError?: (error: string) => void;
 }
 
-const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({ onSuccess }) => {
+const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({ clientSecret, onSuccess, onError }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -14,37 +16,39 @@ const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({ onSuccess }) =>
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements || !clientSecret) {
       return;
     }
 
     setProcessing(true);
     setError(null);
 
-    // In a real app, you would create a PaymentIntent on the server
-    // and confirm it here. For this demo, we'll simulate a successful
-    // token creation or just a delay.
-    
     const cardElement = elements.getElement(CardElement);
-    
-    if (cardElement) {
-        // We can create a payment method to validate the card details
-        const { error, paymentMethod } = await stripe.createPaymentMethod({
-            type: 'card',
-            card: cardElement,
-        });
 
-        if (error) {
-            setError(error.message || 'An error occurred');
-            setProcessing(false);
-        } else {
-            console.log('[PaymentMethod]', paymentMethod);
-            // Simulate server processing
-            setTimeout(() => {
-                setProcessing(false);
-                onSuccess();
-            }, 1500);
-        }
+    if (!cardElement) {
+      setError('Card element not found');
+      setProcessing(false);
+      return;
+    }
+
+    // Confirm the payment with the client secret from the server
+    const result = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardElement as any,
+      },
+    });
+
+    if (result.error) {
+      setError(result.error.message || 'Payment failed. Please try again.');
+      onError?.(result.error.message || 'Payment failed');
+      setProcessing(false);
+    } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+      console.log('[PaymentIntent]', result.paymentIntent);
+      setProcessing(false);
+      onSuccess(result.paymentIntent.id);
+    } else {
+      setError('Payment processing. Please wait...');
+      setProcessing(false);
     }
   };
 
@@ -52,24 +56,24 @@ const StripeCheckoutForm: React.FC<StripeCheckoutFormProps> = ({ onSuccess }) =>
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
         <CardElement options={{
-            style: {
-                base: {
-                    fontSize: '16px',
-                    color: '#424770',
-                    '::placeholder': {
-                        color: '#aab7c4',
-                    },
-                },
-                invalid: {
-                    color: '#9e2146',
-                },
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#424770',
+              '::placeholder': {
+                color: '#aab7c4',
+              },
             },
+            invalid: {
+              color: '#9e2146',
+            },
+          },
         }} />
       </div>
       {error && <div className="text-red-500 text-sm">{error}</div>}
-      <button 
-        type="submit" 
-        disabled={!stripe || processing}
+      <button
+        type="submit"
+        disabled={!stripe || processing || !clientSecret}
         className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {processing ? 'Processing...' : 'Pay Now'}

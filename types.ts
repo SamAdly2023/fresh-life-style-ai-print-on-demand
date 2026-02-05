@@ -50,9 +50,10 @@ export interface Order {
   userId: string;
   items: CartItem[];
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'paid' | 'payment_failed';
   createdAt: string;
   shippingAddress?: ShippingAddress;
+  stripePaymentIntentId?: string;
 }
 
 export enum AppRoute {

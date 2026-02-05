@@ -7,9 +7,9 @@ export const api = {
   async getProducts(): Promise<Product[]> {
     const res = await fetch(`${API_URL}/products`);
     if (!res.ok) {
-        const err = await res.text();
-        console.error('getProducts failed', err);
-        throw new Error('Failed to fetch products');
+      const err = await res.text();
+      console.error('getProducts failed', err);
+      throw new Error('Failed to fetch products');
     }
     return res.json();
   },
@@ -17,9 +17,9 @@ export const api = {
   async getDesigns(): Promise<Design[]> {
     const res = await fetch(`${API_URL}/designs`);
     if (!res.ok) {
-        const err = await res.text();
-        console.error('getDesigns failed', err);
-        throw new Error('Failed to fetch designs');
+      const err = await res.text();
+      console.error('getDesigns failed', err);
+      throw new Error('Failed to fetch designs');
     }
     const data = await res.json();
     return data.map((d: any) => ({
@@ -67,9 +67,9 @@ export const api = {
       }),
     });
     if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`[API] Sync User Failed: ${res.status} ${errorText}`);
-        throw new Error(`Failed to sync user: ${res.status} ${errorText}`);
+      const errorText = await res.text();
+      console.error(`[API] Sync User Failed: ${res.status} ${errorText}`);
+      throw new Error(`Failed to sync user: ${res.status} ${errorText}`);
     }
     const data = await res.json();
     return {
@@ -85,7 +85,14 @@ export const api = {
     await fetch(`${API_URL}/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order),
+      body: JSON.stringify({
+        id: order.id || undefined,
+        user_id: order.userId,
+        total_amount: order.total,
+        items: order.items,
+        shipping_address: order.shippingAddress,
+        stripe_payment_intent_id: order.stripePaymentIntentId
+      }),
     });
   },
 
@@ -107,11 +114,11 @@ export const api = {
     return res.json();
   },
 
-  async createPaymentIntent(amount: number): Promise<{ clientSecret: string }> {
+  async createPaymentIntent(amount: number): Promise<{ clientSecret: string; paymentIntentId: string }> {
     const res = await fetch(`${API_URL}/create-payment-intent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount }),
     });
     if (!res.ok) throw new Error('Failed to create payment intent');
     return res.json();

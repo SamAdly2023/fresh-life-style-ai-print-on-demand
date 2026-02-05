@@ -6,21 +6,23 @@ import { useApp } from '../App';
 import { api } from '../services/api';
 
 const Gallery: React.FC = () => {
-  const { user } = useApp();
+  const { user, login } = useApp();
   const navigate = useNavigate();
   const [designs, setDesigns] = useState<Design[]>([]);
 
   useEffect(() => {
-    if (!user) {
-        navigate(AppRoute.HOME);
-    } else {
-        api.getDesigns()
-           .then(data => setDesigns(data))
-           .catch(error => console.error("Failed to fetch designs", error));
-    }
-  }, [user, navigate]);
+    api.getDesigns()
+        .then(data => setDesigns(data))
+        .catch(error => console.error("Failed to fetch designs", error));
+  }, []);
 
-  if (!user) return null;
+  const handleOrder = (design: Design) => {
+    if (user) {
+        navigate(AppRoute.CREATE, { state: { selectedDesign: design } });
+    } else {
+        login();
+    }
+  };
 
   return (
     <div className="bg-white min-h-screen py-16 px-4">
@@ -80,14 +82,13 @@ const Gallery: React.FC = () => {
                    </div>
 
                    {/* Action Button */}
-                   <Link 
-                      to={AppRoute.CREATE}
-                      state={{ selectedDesign: design }}
+                   <button 
+                      onClick={() => handleOrder(design)}
                       className="w-full flex items-center justify-center space-x-2 bg-gray-900 text-white py-3 rounded-xl font-bold text-sm group-hover:bg-green-500 group-hover:text-black transition-all duration-300"
                     >
                       <span>Order Now</span>
                       <i className="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
-                    </Link>
+                    </button>
                </div>
             </div>
           ))}

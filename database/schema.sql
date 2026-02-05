@@ -38,7 +38,9 @@ create table if not exists public.orders (
   id uuid default uuid_generate_v4() primary key,
   user_id text references public.users(id),
   total_amount decimal(10, 2) not null,
-  status text check (status in ('pending', 'processing', 'shipped', 'delivered')) default 'pending',
+  status text check (status in ('pending', 'processing', 'shipped', 'delivered', 'paid', 'payment_failed')) default 'pending',
+  stripe_payment_intent_id text,
+  stripe_client_secret text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
