@@ -159,8 +159,23 @@ pool.connect((err, client, release) => {
 // Routes
 
 // GET /api/health (Check if backend is running)
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      dbTime: result.rows[0].now
+    });
+  } catch (error) {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      database: 'error',
+      dbError: error.message
+    });
+  }
 });
 
 // GET /api/products

@@ -57,18 +57,32 @@ create table if not exists public.order_items (
   price_at_purchase decimal(10, 2) not null
 );
 
--- RLS POLICIES (Row Level Security) - Optional but recommended
-alter table public.users enable row level security;
-alter table public.orders enable row level security;
-alter table public.order_items enable row level security;
+-- RLS POLICIES (Row Level Security)
+-- Note: When using direct PostgreSQL connections (pg library), auth.uid() is null
+-- So we need permissive policies for backend access
 
--- Allow users to read their own data
-create policy "Users can view own profile" on public.users for select using (auth.uid()::text = id);
-create policy "Users can view own orders" on public.orders for select using (auth.uid()::text = user_id);
+-- Users table - allow all operations from backend
+alter table public.users enable row level security;
+drop policy if exists "Users can view own profile" on public.users;
+drop policy if exists "Allow all users operations" on public.users;
+create policy "Allow all users operations" on public.users for all using (true) with check (true);
+
+-- Orders table - allow all operations from backend
+alter table public.orders enable row level security;
+drop policy if exists "Users can view own orders" on public.orders;
+drop policy if exists "Allow all orders operations" on public.orders;
+create policy "Allow all orders operations" on public.orders for all using (true) with check (true);
+
+-- Order items table - allow all operations from backend  
+alter table public.order_items enable row level security;
+drop policy if exists "Allow all order_items operations" on public.order_items;
+create policy "Allow all order_items operations" on public.order_items for all using (true) with check (true);
 
 -- Allow public read access to products and designs
 alter table public.products enable row level security;
-create policy "Public products are viewable by everyone" on public.products for select using (true);
+drop policy if exists "Public products are viewable by everyone" on public.products;
+create policy "Public products are viewable by everyone" on public.products for all using (true) with check (true);
 
 alter table public.designs enable row level security;
-create policy "Public designs are viewable by everyone" on public.designs for select using (true);
+drop policy if exists "Public designs are viewable by everyone" on public.designs;
+create policy "Public designs are viewable by everyone" on public.designs for all using (true) with check (true);

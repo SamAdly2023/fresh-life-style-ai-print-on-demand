@@ -7,7 +7,7 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        fromGroup: shared-db-settings
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: NODE_VERSION
@@ -20,3 +20,5 @@ services:
         sync: false
       - key: PRINTFUL_API_KEY
         sync: false
+      - key: NODE_ENV
+        value: production
