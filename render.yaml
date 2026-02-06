@@ -8,6 +8,8 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
+      - key: VITE_GEMINI_API_KEY
+        sync: false
       - key: NODE_VERSION
         value: 20.11.0
       - key: STRIPE_SECRET_KEY

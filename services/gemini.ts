@@ -3,10 +3,25 @@ import { GoogleGenAI } from "@google/genai";
 
 export class GeminiService {
   private ai: GoogleGenAI;
+  private hasApiKey: boolean;
 
   constructor() {
-    // Try VITE_ prefixed env var first, then fallback to process.env (handled by vite define)
-    this.ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.API_KEY || '' });
+    // Check for API key from various sources
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY ||
+      (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
+      (typeof process !== 'undefined' && process.env?.API_KEY) ||
+      '';
+
+    this.hasApiKey = !!apiKey && apiKey !== 'your_gemini_api_key_here';
+    this.ai = new GoogleGenAI({ apiKey });
+
+    if (!this.hasApiKey) {
+      console.warn('Gemini API key not configured. AI generation will use demo mode.');
+    }
+  }
+
+  isConfigured(): boolean {
+    return this.hasApiKey;
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
