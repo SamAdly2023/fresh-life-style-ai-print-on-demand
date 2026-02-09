@@ -25,31 +25,46 @@ export class GeminiService {
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
+    if (!this.hasApiKey) {
+      console.error("No valid API key configured");
+      return null;
+    }
+
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
     try {
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-2.0-flash-exp',
         contents: {
           parts: [
             { text: `Create a high-quality graphic design suitable for printing on a t-shirt. Style: Artistic, modern, and clean. Topic: ${prompt}. The design should be centered and look great on a flat background.` }
           ]
         },
         config: {
-          imageConfig: {
-            aspectRatio: "1:1"
-          }
+          responseModalities: ["IMAGE", "TEXT"],
         }
       });
 
-      if (response.candidates && response.candidates[0].content.parts) {
+      clearTimeout(timeoutId);
+
+      if (response.candidates && response.candidates[0]?.content?.parts) {
         for (const part of response.candidates[0].content.parts) {
           if (part.inlineData) {
             return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
           }
         }
       }
+      console.error("No image data in response:", response);
       return null;
-    } catch (error) {
-      console.error("Gemini Image Generation Error:", error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error("Gemini API request timed out after 60 seconds");
+      } else {
+        console.error("Gemini Image Generation Error:", error);
+      }
       return null;
     }
   }

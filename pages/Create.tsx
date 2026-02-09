@@ -44,7 +44,7 @@ const Create: React.FC = () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
     try {
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      if (!geminiService.isConfigured()) {
         console.warn("No Gemini API Key found. Using Demo Mock.");
 
         // Mock delay
