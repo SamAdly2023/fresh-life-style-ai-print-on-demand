@@ -6,7 +6,7 @@ import { geminiService } from '../services/gemini';
 import { api } from '../services/api';
 import { useApp } from '../App';
 import { AppRoute } from '../types';
-import { GALLERY_DESIGNS } from '../constants';
+import { GALLERY_DESIGNS, generateProductName } from '../constants';
 
 // Local product images for demo mode
 const LOCAL_DEMO_IMAGES = GALLERY_DESIGNS.map(d => d.imageUrl);
@@ -60,7 +60,7 @@ const Create: React.FC = () => {
         try {
           const newDesign = await api.createDesign({
             imageUrl: mockImage,
-            name: prompt,
+            name: generateProductName(),
             author: user?.name || 'Anonymous Creator',
             isAI: true
           });
@@ -86,7 +86,7 @@ const Create: React.FC = () => {
           // Auto-save to Gallery
           const newDesign = await api.createDesign({
             imageUrl: result,
-            name: prompt,
+            name: generateProductName(),
             author: user?.name || 'Anonymous Creator',
             isAI: true
           });
@@ -154,8 +154,8 @@ const Create: React.FC = () => {
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
                 className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 transition-all ${isGenerating || !prompt.trim()
-                    ? 'bg-gray-100 text-gray-400'
-                    : 'bg-green-500 text-black hover:bg-green-400 active:scale-95'
+                  ? 'bg-gray-100 text-gray-400'
+                  : 'bg-green-500 text-black hover:bg-green-400 active:scale-95'
                   }`}
               >
                 {isGenerating ? (
