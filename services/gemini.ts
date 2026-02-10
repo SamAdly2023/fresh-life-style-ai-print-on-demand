@@ -1,23 +1,25 @@
 
-// AI Image Generation Service - Supports Grok (xAI) API
+// AI Image Generation Service - Uses Gemini for prompt enhancement + Grok/Pollinations for image generation
 
 export class GeminiService {
-  private apiKey: string;
-  private hasApiKey: boolean;
+  private grokApiKey: string;
+  private geminiApiKey: string;
+  private hasGrokKey: boolean;
+  private hasGeminiKey: boolean;
 
   constructor() {
     // Check for Grok/xAI API key
-    this.apiKey = import.meta.env.VITE_XAI_API_KEY ||
+    this.grokApiKey = import.meta.env.VITE_XAI_API_KEY ||
       import.meta.env.VITE_GROK_API_KEY ||
       '';
 
-    this.hasApiKey = !!this.apiKey && this.apiKey.length > 10;
+    // Check for Gemini API key (for prompt enhancement)
+    this.geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-    if (this.hasApiKey) {
-      console.log('AI Image Generation service initialized (using Grok/xAI)');
-    } else {
-      console.log('AI Image Generation service initialized (using Pollinations.ai fallback)');
-    }
+    this.hasGrokKey = !!this.grokApiKey && this.grokApiKey.length > 10;
+    this.hasGeminiKey = !!this.geminiApiKey && this.geminiApiKey.length > 10;
+
+    console.log(`AI Service initialized - Gemini prompt enhancement: ${this.hasGeminiKey ? 'ON' : 'OFF'}, Grok image gen: ${this.hasGrokKey ? 'ON' : 'OFF (using Pollinations)'}`);
   }
 
   isConfigured(): boolean {
@@ -26,11 +28,20 @@ export class GeminiService {
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
-    // Create a clean standalone design image (not on a t-shirt) for Printify
-    const enhancedPrompt = `Create a standalone graphic design artwork on a plain transparent or white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, just the design artwork itself, isolated on a clean background.`;
+    // Step 1: Enhance the prompt using Gemini (if available)
+    let enhancedPrompt: string;
 
-    // Try Grok API first if configured
-    if (this.hasApiKey) {
+    if (this.hasGeminiKey) {
+      console.log("Original prompt:", prompt);
+      enhancedPrompt = await this.enhancePromptWithGemini(prompt);
+      console.log("Enhanced prompt:", enhancedPrompt);
+    } else {
+      // Fallback to basic enhancement
+      enhancedPrompt = `Create a standalone graphic design artwork on a plain transparent or white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, just the design artwork itself, isolated on a clean background.`;
+    }
+
+    // Step 2: Generate image with enhanced prompt
+    if (this.hasGrokKey) {
       try {
         const result = await this.generateWithGrok(enhancedPrompt);
         if (result) return result;
@@ -43,12 +54,67 @@ export class GeminiService {
     return this.generateWithPollinations(enhancedPrompt);
   }
 
+  private async enhancePromptWithGemini(simplePrompt: string): Promise<string> {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `You are an expert prompt engineer for AI image generation. Convert this simple idea into a detailed, professional image generation prompt optimized for creating t-shirt designs.
+
+User's simple idea: "${simplePrompt}"
+
+Requirements for the enhanced prompt:
+- Create a standalone graphic design artwork
+- Plain transparent or white background (NO t-shirt mockup, NO clothing in the image)
+- High resolution, clean edges, centered composition
+- Suitable for print-on-demand t-shirt printing
+- Include specific art style, colors, mood, and visual details
+- Keep it under 200 words
+
+Respond with ONLY the enhanced prompt, no explanations or formatting.`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 300
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error("Gemini prompt enhancement failed:", response.status);
+        return this.getBasicEnhancedPrompt(simplePrompt);
+      }
+
+      const data = await response.json();
+      const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (enhancedText) {
+        return enhancedText.trim();
+      }
+
+      return this.getBasicEnhancedPrompt(simplePrompt);
+    } catch (error) {
+      console.error("Gemini enhancement error:", error);
+      return this.getBasicEnhancedPrompt(simplePrompt);
+    }
+  }
+
+  private getBasicEnhancedPrompt(prompt: string): string {
+    return `Create a standalone graphic design artwork on a plain transparent or white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, just the design artwork itself, isolated on a clean background.`;
+  }
+
   private async generateWithGrok(prompt: string): Promise<string | null> {
     const response = await fetch('https://api.x.ai/v1/images/generations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
+        'Authorization': `Bearer ${this.grokApiKey}`
       },
       body: JSON.stringify({
         model: 'grok-2-image',
