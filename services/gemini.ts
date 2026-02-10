@@ -26,7 +26,8 @@ export class GeminiService {
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
-    const enhancedPrompt = `High-quality t-shirt graphic design, artistic, modern, clean, centered composition, suitable for printing: ${prompt}`;
+    // Create a clean standalone design image (not on a t-shirt) for Printify
+    const enhancedPrompt = `Create a standalone graphic design artwork on a plain transparent or white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, just the design artwork itself, isolated on a clean background.`;
 
     // Try Grok API first if configured
     if (this.hasApiKey) {

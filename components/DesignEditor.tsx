@@ -18,7 +18,7 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
 
   const handleAddToCart = () => {
     if (!designUrl) return;
-    
+
     addToCart({
       id: '',
       productId: 'p1', // Default Premium Tee
@@ -47,35 +47,41 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto py-8">
       {/* Visualizer */}
-      <div className="relative aspect-square bg-gray-50 rounded-3xl overflow-hidden flex items-center justify-center border border-gray-100 shadow-inner group">
-        {/* T-Shirt Mockup Image */}
-        <img 
-          src="https://www.freeiconspng.com/uploads/t-shirt-png-t-shirt-png-image-32.png" 
-          alt="T-shirt Mockup" 
-          className="w-full h-full object-contain pointer-events-none transition-transform duration-500 group-hover:scale-105"
-          style={{ 
-            filter: `drop-shadow(0 0 10px rgba(0,0,0,0.1))`, 
-            mixBlendMode: 'multiply',
-            backgroundColor: selectedColor.hex 
-          }}
-        />
-        
-        {/* Design Overlay */}
+      <div className="relative aspect-square bg-gray-100 rounded-3xl overflow-hidden flex items-center justify-center border border-gray-200 shadow-inner group">
+        {/* T-Shirt SVG Mockup */}
+        <svg
+          viewBox="0 0 400 450"
+          className="w-[85%] h-[85%] transition-transform duration-500 group-hover:scale-105"
+          style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.15))' }}
+        >
+          {/* T-Shirt Shape */}
+          <path
+            d="M100 60 L60 80 L20 140 L60 160 L80 130 L80 400 L320 400 L320 130 L340 160 L380 140 L340 80 L300 60 L260 80 C240 100 160 100 140 80 L100 60 Z"
+            fill={selectedColor.hex}
+            stroke="#ddd"
+            strokeWidth="2"
+          />
+          {/* Collar */}
+          <ellipse cx="200" cy="75" rx="60" ry="20" fill={selectedColor.hex} stroke="#ccc" strokeWidth="1" />
+          <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f5f5f5" stroke="#ddd" strokeWidth="1" />
+        </svg>
+
+        {/* Design Overlay - Centered on T-Shirt */}
         {designUrl && (
-          <div className="absolute top-[25%] left-1/2 -translate-x-1/2 w-[35%] h-[45%] pointer-events-none">
-            <img 
-              src={designUrl} 
-              alt="Design" 
-              className="w-full h-full object-contain opacity-90 transition-opacity duration-300 group-hover:opacity-100"
-              style={{ mixBlendMode: 'multiply' }}
+          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 w-[30%] aspect-square pointer-events-none">
+            <img
+              src={designUrl}
+              alt="Design"
+              className="w-full h-full object-contain transition-opacity duration-300 group-hover:opacity-100"
+              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
             />
           </div>
         )}
 
         {!designUrl && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-black/5">
-             <i className="fa-solid fa-cloud-arrow-up text-4xl mb-4"></i>
-             <p className="font-medium">Upload or generate a design</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+            <i className="fa-solid fa-cloud-arrow-up text-4xl mb-4"></i>
+            <p className="font-medium">Upload or generate a design</p>
           </div>
         )}
       </div>
@@ -95,9 +101,8 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
               <button
                 key={c.name}
                 onClick={() => setSelectedColor(c)}
-                className={`w-10 h-10 rounded-full border-2 transition-all transform hover:scale-110 ${
-                  selectedColor.name === c.name ? 'border-black scale-110 shadow-lg' : 'border-transparent'
-                }`}
+                className={`w-10 h-10 rounded-full border-2 transition-all transform hover:scale-110 ${selectedColor.name === c.name ? 'border-black scale-110 shadow-lg' : 'border-transparent'
+                  }`}
                 style={{ backgroundColor: c.hex }}
                 title={c.name}
               />
@@ -113,11 +118,10 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
               <button
                 key={s}
                 onClick={() => setSelectedSize(s)}
-                className={`w-12 h-12 rounded-xl border-2 font-bold transition-all ${
-                  selectedSize === s 
-                    ? 'bg-black text-white border-black shadow-lg scale-105' 
+                className={`w-12 h-12 rounded-xl border-2 font-bold transition-all ${selectedSize === s
+                    ? 'bg-black text-white border-black shadow-lg scale-105'
                     : 'bg-white text-black border-gray-100 hover:border-black'
-                }`}
+                  }`}
               >
                 {s}
               </button>
@@ -141,13 +145,12 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
           <button
             onClick={handleAddToCart}
             disabled={!designUrl}
-            className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center space-x-3 ${
-              !designUrl 
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                : isSuccess 
-                  ? 'bg-green-500 text-white' 
+            className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center space-x-3 ${!designUrl
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : isSuccess
+                  ? 'bg-green-500 text-white'
                   : 'bg-black text-white hover:bg-gray-800 shadow-xl active:scale-95'
-            }`}
+              }`}
           >
             {isSuccess ? (
               <>
@@ -161,7 +164,7 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
               </>
             )}
           </button>
-          
+
           <p className="text-xs text-center text-gray-400">
             <i className="fa-solid fa-truck-fast mr-1"></i> Free shipping on orders over $75
           </p>
