@@ -440,7 +440,7 @@ app.delete('/api/designs/:id', (req, res) => {
     if (!design) {
       return res.status(404).json({ error: 'Design not found' });
     }
-    
+
     db.prepare('DELETE FROM designs WHERE id = ?').run(id);
     console.log(`Design ${id} deleted successfully`);
     res.json({ success: true, message: 'Design deleted' });

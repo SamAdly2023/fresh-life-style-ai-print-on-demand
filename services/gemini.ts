@@ -1,164 +1,44 @@
-
-// AI Image Generation Service - Uses Gemini for prompt enhancement + Grok/Pollinations for image generation
+﻿// AI Image Generation Service - Uses Pollinations.ai (free, no API key needed)
 
 export class GeminiService {
-  private grokApiKey: string;
-  private geminiApiKey: string;
-  private hasGrokKey: boolean;
-  private hasGeminiKey: boolean;
-
   constructor() {
-    // Check for Grok/xAI API key
-    this.grokApiKey = import.meta.env.VITE_XAI_API_KEY ||
-      import.meta.env.VITE_GROK_API_KEY ||
-      '';
-
-    // Check for Gemini API key (for prompt enhancement)
-    this.geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-
-    this.hasGrokKey = !!this.grokApiKey && this.grokApiKey.length > 10;
-    this.hasGeminiKey = !!this.geminiApiKey && this.geminiApiKey.length > 10;
-
-    console.log(`AI Service initialized - Gemini prompt enhancement: ${this.hasGeminiKey ? 'ON' : 'OFF'}, Grok image gen: ${this.hasGrokKey ? 'ON' : 'OFF (using Pollinations)'}`);
+    console.log('AI Image Generation service initialized (using Pollinations.ai - free, no API key)');
   }
 
   isConfigured(): boolean {
-    // Always return true - we have Pollinations.ai as fallback
     return true;
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
-    // Send user prompt directly to Grok for image generation
-    console.log("🎨 User prompt:", prompt);
+    console.log("User prompt:", prompt);
 
-    // Add basic formatting for t-shirt design
-    const imagePrompt = `${prompt}, high quality graphic design, centered composition, solid white background, suitable for t-shirt printing`;
+    // Add formatting for t-shirt design
+    const imagePrompt = `${prompt}, high quality graphic design, centered composition, solid white background, suitable for t-shirt printing, digital art, vibrant colors`;
 
-    // Use Grok API for image generation
-    if (!this.hasGrokKey) {
-      console.error("❌ No Grok API key configured! Please set VITE_XAI_API_KEY");
-      alert("Image generation requires a Grok API key. Please configure VITE_XAI_API_KEY.");
-      return null;
-    }
-
-    console.log("🖼️ Generating image with Grok...");
+    console.log("Generating image with Pollinations.ai...");
+    
     try {
-      const result = await this.generateWithGrok(imagePrompt);
+      const result = await this.generateWithPollinations(imagePrompt);
       if (result) {
-        console.log("✅ Grok image generated successfully");
+        console.log("Image generated successfully");
         return result;
       }
-      console.error("❌ Grok returned no image");
+      console.error("Image generation returned no result");
       return null;
     } catch (error) {
-      console.error("❌ Grok API failed:", error);
+      console.error("Image generation failed:", error);
       return null;
     }
-  }
-
-  private async enhancePromptWithGemini(simplePrompt: string): Promise<string> {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `You are an expert prompt engineer for AI image generation. Convert this simple idea into a detailed, professional image generation prompt optimized for creating t-shirt designs.
-
-User's simple idea: "${simplePrompt}"
-
-Requirements for the enhanced prompt:
-- Create a standalone graphic design artwork
-- SOLID WHITE BACKGROUND (not transparent, not checkered, pure white #FFFFFF)
-- High resolution, clean edges, centered composition
-- Suitable for print-on-demand t-shirt printing
-- Include specific art style, colors, mood, and visual details
-- NO t-shirt mockup, NO clothing in the image - just the design artwork itself
-- Keep it under 200 words
-
-Respond with ONLY the enhanced prompt, no explanations or formatting.`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 300
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Gemini prompt enhancement failed:", response.status, errorText);
-        return this.getBasicEnhancedPrompt(simplePrompt);
-      }
-
-      const data = await response.json();
-      const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (enhancedText) {
-        console.log("✅ Gemini enhancement successful");
-        return enhancedText.trim();
-      }
-
-      console.warn("⚠️ No text in Gemini response, using basic prompt");
-      return this.getBasicEnhancedPrompt(simplePrompt);
-    } catch (error) {
-      console.error("Gemini enhancement error:", error);
-      return this.getBasicEnhancedPrompt(simplePrompt);
-    }
-  }
-
-  private getBasicEnhancedPrompt(prompt: string): string {
-    return `Create a standalone graphic design artwork on a solid white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, vibrant colors, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, NO transparency, NO checkered pattern - just the design artwork itself on a pure white background.`;
-  }
-
-  private async generateWithGrok(prompt: string): Promise<string | null> {
-    const response = await fetch('https://api.x.ai/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.grokApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'grok-2-image',
-        prompt: prompt,
-        n: 1,
-        size: '1024x1024',
-        response_format: 'b64_json'
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Grok API error:", response.status, errorText);
-      return null;
-    }
-
-    const data = await response.json();
-
-    if (data.data && data.data[0]?.b64_json) {
-      return `data:image/png;base64,${data.data[0].b64_json}`;
-    }
-
-    if (data.data && data.data[0]?.url) {
-      // If URL is returned instead of base64, fetch and convert
-      const imgResponse = await fetch(data.data[0].url);
-      const blob = await imgResponse.blob();
-      return this.blobToBase64(blob);
-    }
-
-    console.error("No image in Grok response:", data);
-    return null;
   }
 
   private async generateWithPollinations(prompt: string): Promise<string | null> {
     try {
       const encodedPrompt = encodeURIComponent(prompt);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+      const seed = Date.now();
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
 
+      console.log("Fetching from Pollinations...");
+      
       const response = await fetch(imageUrl);
 
       if (!response.ok) {

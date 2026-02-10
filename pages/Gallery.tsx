@@ -44,7 +44,7 @@ const Gallery: React.FC = () => {
       alert("Cannot delete built-in designs");
       return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete "${design.name}"?`)) {
       return;
     }
