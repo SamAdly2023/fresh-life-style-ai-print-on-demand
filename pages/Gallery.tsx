@@ -11,18 +11,23 @@ const Gallery: React.FC = () => {
   const navigate = useNavigate();
   const [designs, setDesigns] = useState<Design[]>(GALLERY_DESIGNS);
 
-  useEffect(() => {
+  const loadDesigns = () => {
     api.getDesigns()
       .then(data => {
-        // Use API data if available, otherwise keep local designs
+        // Combine local designs with API designs (avoid duplicates by id)
         if (data && data.length > 0) {
-          setDesigns(data);
+          const localIds = new Set(GALLERY_DESIGNS.map(d => d.id));
+          const newApiDesigns = data.filter((d: Design) => !localIds.has(d.id));
+          setDesigns([...GALLERY_DESIGNS, ...newApiDesigns]);
         }
       })
       .catch(error => {
         console.error("Failed to fetch designs, using local images", error);
-        // Keep using GALLERY_DESIGNS (already set as default)
       });
+  };
+
+  useEffect(() => {
+    loadDesigns();
   }, []);
 
   const handleOrder = (design: Design) => {
@@ -30,6 +35,27 @@ const Gallery: React.FC = () => {
       navigate(AppRoute.CREATE, { state: { selectedDesign: design } });
     } else {
       login();
+    }
+  };
+
+  const handleDelete = async (design: Design) => {
+    // Don't allow deleting local designs (from product-images folder)
+    if (design.imageUrl.startsWith('/product-images/')) {
+      alert("Cannot delete built-in designs");
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete "${design.name}"?`)) {
+      return;
+    }
+
+    try {
+      await api.deleteDesign(design.id);
+      // Reload designs after deletion
+      loadDesigns();
+    } catch (error) {
+      console.error("Failed to delete design:", error);
+      alert("Failed to delete design");
     }
   };
 
@@ -120,14 +146,26 @@ const Gallery: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action Button */}
-                  <button
-                    onClick={() => handleOrder(design)}
-                    className="w-full flex items-center justify-center space-x-2 bg-gray-900 text-white py-3 rounded-xl font-bold text-sm group-hover:bg-green-500 group-hover:text-black transition-all duration-300"
-                  >
-                    <span>Order Now</span>
-                    <i className="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleOrder(design)}
+                      className="flex-1 flex items-center justify-center space-x-2 bg-gray-900 text-white py-3 rounded-xl font-bold text-sm group-hover:bg-green-500 group-hover:text-black transition-all duration-300"
+                    >
+                      <span>Order Now</span>
+                      <i className="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+                    </button>
+                    {/* Admin Delete Button */}
+                    {user?.isAdmin && !isLocalProductImage && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(design); }}
+                        className="px-4 py-3 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-all"
+                        title="Delete design"
+                      >
+                        <i className="fa-solid fa-trash"></i>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

@@ -432,6 +432,24 @@ app.post('/api/designs', (req, res) => {
   }
 });
 
+// DELETE /api/designs/:id (Admin only)
+app.delete('/api/designs/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    const design = db.prepare('SELECT * FROM designs WHERE id = ?').get(id);
+    if (!design) {
+      return res.status(404).json({ error: 'Design not found' });
+    }
+    
+    db.prepare('DELETE FROM designs WHERE id = ?').run(id);
+    console.log(`Design ${id} deleted successfully`);
+    res.json({ success: true, message: 'Design deleted' });
+  } catch (error) {
+    console.error('Error deleting design:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Webhook for Printful Updates
 app.post('/api/webhooks/printful', (req, res) => {
   const { type, data } = req.body;

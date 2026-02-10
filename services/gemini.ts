@@ -28,38 +28,32 @@ export class GeminiService {
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
-    // Step 1: Enhance the prompt using Gemini (if available)
-    let enhancedPrompt: string;
+    // Send user prompt directly to Grok for image generation
+    console.log("🎨 User prompt:", prompt);
 
-    if (this.hasGeminiKey) {
-      console.log("🎨 Original user prompt:", prompt);
-      console.log("🔄 Enhancing prompt with Gemini...");
-      enhancedPrompt = await this.enhancePromptWithGemini(prompt);
-      console.log("✨ Enhanced prompt:", enhancedPrompt);
-    } else {
-      console.log("⚠️ No Gemini API key - using basic prompt enhancement");
-      // Fallback to basic enhancement
-      enhancedPrompt = this.getBasicEnhancedPrompt(prompt);
+    // Add basic formatting for t-shirt design
+    const imagePrompt = `${prompt}, high quality graphic design, centered composition, solid white background, suitable for t-shirt printing`;
+
+    // Use Grok API for image generation
+    if (!this.hasGrokKey) {
+      console.error("❌ No Grok API key configured! Please set VITE_XAI_API_KEY");
+      alert("Image generation requires a Grok API key. Please configure VITE_XAI_API_KEY.");
+      return null;
     }
 
-    // Step 2: Generate image with enhanced prompt
-    if (this.hasGrokKey) {
-      console.log("🖼️ Generating image with Grok...");
-      try {
-        const result = await this.generateWithGrok(enhancedPrompt);
-        if (result) {
-          console.log("✅ Grok image generated successfully");
-          return result;
-        }
-      } catch (error) {
-        console.error("❌ Grok API failed, falling back to Pollinations:", error);
+    console.log("🖼️ Generating image with Grok...");
+    try {
+      const result = await this.generateWithGrok(imagePrompt);
+      if (result) {
+        console.log("✅ Grok image generated successfully");
+        return result;
       }
-    } else {
-      console.log("🖼️ Generating image with Pollinations (no Grok key)...");
+      console.error("❌ Grok returned no image");
+      return null;
+    } catch (error) {
+      console.error("❌ Grok API failed:", error);
+      return null;
     }
-
-    // Fallback to Pollinations.ai (free, no API key required)
-    return this.generateWithPollinations(enhancedPrompt);
   }
 
   private async enhancePromptWithGemini(simplePrompt: string): Promise<string> {

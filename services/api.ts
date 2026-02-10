@@ -122,5 +122,16 @@ export const api = {
     });
     if (!res.ok) throw new Error('Failed to create payment intent');
     return res.json();
+  },
+
+  async deleteDesign(designId: string): Promise<void> {
+    const res = await fetch(`${API_URL}/designs/${designId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('deleteDesign failed', err);
+      throw new Error('Failed to delete design');
+    }
   }
 };
