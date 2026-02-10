@@ -1,72 +1,113 @@
 
-import { GoogleGenAI } from "@google/genai";
+// AI Image Generation Service - Supports Grok (xAI) API
 
 export class GeminiService {
-  private ai: GoogleGenAI;
+  private apiKey: string;
   private hasApiKey: boolean;
 
   constructor() {
-    // Check for API key from various sources
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY ||
-      (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
-      (typeof process !== 'undefined' && process.env?.API_KEY) ||
+    // Check for Grok/xAI API key
+    this.apiKey = import.meta.env.VITE_XAI_API_KEY ||
+      import.meta.env.VITE_GROK_API_KEY ||
       '';
 
-    this.hasApiKey = !!apiKey && apiKey !== 'your_gemini_api_key_here';
-    this.ai = new GoogleGenAI({ apiKey });
+    this.hasApiKey = !!this.apiKey && this.apiKey.length > 10;
 
-    if (!this.hasApiKey) {
-      console.warn('Gemini API key not configured. AI generation will use demo mode.');
+    if (this.hasApiKey) {
+      console.log('AI Image Generation service initialized (using Grok/xAI)');
+    } else {
+      console.log('AI Image Generation service initialized (using Pollinations.ai fallback)');
     }
   }
 
   isConfigured(): boolean {
-    return this.hasApiKey;
+    // Always return true - we have Pollinations.ai as fallback
+    return true;
   }
 
   async generateDesign(prompt: string): Promise<string | null> {
-    if (!this.hasApiKey) {
-      console.error("No valid API key configured");
+    const enhancedPrompt = `High-quality t-shirt graphic design, artistic, modern, clean, centered composition, suitable for printing: ${prompt}`;
+
+    // Try Grok API first if configured
+    if (this.hasApiKey) {
+      try {
+        const result = await this.generateWithGrok(enhancedPrompt);
+        if (result) return result;
+      } catch (error) {
+        console.error("Grok API failed, falling back to Pollinations:", error);
+      }
+    }
+
+    // Fallback to Pollinations.ai (free, no API key required)
+    return this.generateWithPollinations(enhancedPrompt);
+  }
+
+  private async generateWithGrok(prompt: string): Promise<string | null> {
+    const response = await fetch('https://api.x.ai/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'grok-2-image',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Grok API error:", response.status, errorText);
       return null;
     }
 
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    const data = await response.json();
 
+    if (data.data && data.data[0]?.b64_json) {
+      return `data:image/png;base64,${data.data[0].b64_json}`;
+    }
+
+    if (data.data && data.data[0]?.url) {
+      // If URL is returned instead of base64, fetch and convert
+      const imgResponse = await fetch(data.data[0].url);
+      const blob = await imgResponse.blob();
+      return this.blobToBase64(blob);
+    }
+
+    console.error("No image in Grok response:", data);
+    return null;
+  }
+
+  private async generateWithPollinations(prompt: string): Promise<string | null> {
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: {
-          parts: [
-            { text: `Create a high-quality graphic design suitable for printing on a t-shirt. Style: Artistic, modern, and clean. Topic: ${prompt}. The design should be centered and look great on a flat background.` }
-          ]
-        },
-        config: {
-          responseModalities: ["IMAGE", "TEXT"],
-        }
-      });
+      const encodedPrompt = encodeURIComponent(prompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
 
-      clearTimeout(timeoutId);
+      const response = await fetch(imageUrl);
 
-      if (response.candidates && response.candidates[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-          }
-        }
+      if (!response.ok) {
+        console.error("Pollinations failed:", response.status, response.statusText);
+        return null;
       }
-      console.error("No image data in response:", response);
-      return null;
+
+      const blob = await response.blob();
+      return this.blobToBase64(blob);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.error("Gemini API request timed out after 60 seconds");
-      } else {
-        console.error("Gemini Image Generation Error:", error);
-      }
+      console.error("Pollinations error:", error?.message || error);
       return null;
     }
+  }
+
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 }
 
