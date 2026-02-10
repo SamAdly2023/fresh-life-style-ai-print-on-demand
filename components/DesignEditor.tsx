@@ -119,8 +119,8 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
                 key={s}
                 onClick={() => setSelectedSize(s)}
                 className={`w-12 h-12 rounded-xl border-2 font-bold transition-all ${selectedSize === s
-                    ? 'bg-black text-white border-black shadow-lg scale-105'
-                    : 'bg-white text-black border-gray-100 hover:border-black'
+                  ? 'bg-black text-white border-black shadow-lg scale-105'
+                  : 'bg-white text-black border-gray-100 hover:border-black'
                   }`}
               >
                 {s}
@@ -146,10 +146,10 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
             onClick={handleAddToCart}
             disabled={!designUrl}
             className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center space-x-3 ${!designUrl
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : isSuccess
-                  ? 'bg-green-500 text-white'
-                  : 'bg-black text-white hover:bg-gray-800 shadow-xl active:scale-95'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : isSuccess
+                ? 'bg-green-500 text-white'
+                : 'bg-black text-white hover:bg-gray-800 shadow-xl active:scale-95'
               }`}
           >
             {isSuccess ? (

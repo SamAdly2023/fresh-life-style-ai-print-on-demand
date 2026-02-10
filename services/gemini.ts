@@ -32,22 +32,30 @@ export class GeminiService {
     let enhancedPrompt: string;
 
     if (this.hasGeminiKey) {
-      console.log("Original prompt:", prompt);
+      console.log("🎨 Original user prompt:", prompt);
+      console.log("🔄 Enhancing prompt with Gemini...");
       enhancedPrompt = await this.enhancePromptWithGemini(prompt);
-      console.log("Enhanced prompt:", enhancedPrompt);
+      console.log("✨ Enhanced prompt:", enhancedPrompt);
     } else {
+      console.log("⚠️ No Gemini API key - using basic prompt enhancement");
       // Fallback to basic enhancement
-      enhancedPrompt = `Create a standalone graphic design artwork on a plain transparent or white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, just the design artwork itself, isolated on a clean background.`;
+      enhancedPrompt = this.getBasicEnhancedPrompt(prompt);
     }
 
     // Step 2: Generate image with enhanced prompt
     if (this.hasGrokKey) {
+      console.log("🖼️ Generating image with Grok...");
       try {
         const result = await this.generateWithGrok(enhancedPrompt);
-        if (result) return result;
+        if (result) {
+          console.log("✅ Grok image generated successfully");
+          return result;
+        }
       } catch (error) {
-        console.error("Grok API failed, falling back to Pollinations:", error);
+        console.error("❌ Grok API failed, falling back to Pollinations:", error);
       }
+    } else {
+      console.log("🖼️ Generating image with Pollinations (no Grok key)...");
     }
 
     // Fallback to Pollinations.ai (free, no API key required)
@@ -70,10 +78,11 @@ User's simple idea: "${simplePrompt}"
 
 Requirements for the enhanced prompt:
 - Create a standalone graphic design artwork
-- Plain transparent or white background (NO t-shirt mockup, NO clothing in the image)
+- SOLID WHITE BACKGROUND (not transparent, not checkered, pure white #FFFFFF)
 - High resolution, clean edges, centered composition
 - Suitable for print-on-demand t-shirt printing
 - Include specific art style, colors, mood, and visual details
+- NO t-shirt mockup, NO clothing in the image - just the design artwork itself
 - Keep it under 200 words
 
 Respond with ONLY the enhanced prompt, no explanations or formatting.`
@@ -87,7 +96,8 @@ Respond with ONLY the enhanced prompt, no explanations or formatting.`
       });
 
       if (!response.ok) {
-        console.error("Gemini prompt enhancement failed:", response.status);
+        const errorText = await response.text();
+        console.error("Gemini prompt enhancement failed:", response.status, errorText);
         return this.getBasicEnhancedPrompt(simplePrompt);
       }
 
@@ -95,9 +105,11 @@ Respond with ONLY the enhanced prompt, no explanations or formatting.`
       const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (enhancedText) {
+        console.log("✅ Gemini enhancement successful");
         return enhancedText.trim();
       }
 
+      console.warn("⚠️ No text in Gemini response, using basic prompt");
       return this.getBasicEnhancedPrompt(simplePrompt);
     } catch (error) {
       console.error("Gemini enhancement error:", error);
@@ -106,7 +118,7 @@ Respond with ONLY the enhanced prompt, no explanations or formatting.`
   }
 
   private getBasicEnhancedPrompt(prompt: string): string {
-    return `Create a standalone graphic design artwork on a plain transparent or white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, just the design artwork itself, isolated on a clean background.`;
+    return `Create a standalone graphic design artwork on a solid white background. The design should be: ${prompt}. Style: High resolution, clean edges, centered composition, vibrant colors, suitable for print-on-demand t-shirt printing. NO t-shirt mockup, NO clothing, NO transparency, NO checkered pattern - just the design artwork itself on a pure white background.`;
   }
 
   private async generateWithGrok(prompt: string): Promise<string | null> {

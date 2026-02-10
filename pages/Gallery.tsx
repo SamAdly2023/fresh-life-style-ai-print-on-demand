@@ -52,85 +52,85 @@ const Gallery: React.FC = () => {
           {designs.map((design) => {
             // Check if design is from local product-images folder (already has t-shirt in image)
             const isLocalProductImage = design.imageUrl.startsWith('/product-images/');
-            
+
             return (
-            <div key={design.id} className="group bg-white rounded-[2rem] p-3 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-50 hover:border-gray-100">
-              {/* Image Container */}
-              <div className="aspect-square rounded-[1.5rem] overflow-hidden bg-gray-100 mb-4 relative flex items-center justify-center">
-                {isLocalProductImage ? (
-                  /* Show local product images as-is (they already have t-shirt) */
-                  <img
-                    src={design.imageUrl}
-                    alt={design.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  /* Show generated/API designs with T-Shirt mockup */
-                  <>
-                    <svg
-                      viewBox="0 0 400 450"
-                      className="w-[90%] h-[90%] transition-transform duration-500 group-hover:scale-105"
-                    >
-                      <path
-                        d="M100 60 L60 80 L20 140 L60 160 L80 130 L80 400 L320 400 L320 130 L340 160 L380 140 L340 80 L300 60 L260 80 C240 100 160 100 140 80 L100 60 Z"
-                        fill="#FFFFFF"
-                        stroke="#e5e5e5"
-                        strokeWidth="2"
-                      />
-                      <ellipse cx="200" cy="75" rx="60" ry="20" fill="#FFFFFF" stroke="#e5e5e5" strokeWidth="1" />
-                      <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f9f9f9" stroke="#eee" strokeWidth="1" />
-                    </svg>
+              <div key={design.id} className="group bg-white rounded-[2rem] p-3 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-50 hover:border-gray-100">
+                {/* Image Container */}
+                <div className="aspect-square rounded-[1.5rem] overflow-hidden bg-gray-100 mb-4 relative flex items-center justify-center">
+                  {isLocalProductImage ? (
+                    /* Show local product images as-is (they already have t-shirt) */
                     <img
                       src={design.imageUrl}
                       alt={design.name}
-                      className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[26%] h-auto object-contain transition-transform duration-500 group-hover:scale-110"
-                      style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                  </>
-                )}
-                {design.isAI && (
-                  <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider border border-white/10">
-                    <i className="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Art
-                  </span>
-                )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 rounded-[1.5rem]"></div>
-              </div>
-
-              {/* Product Info */}
-              <div className="px-2 pb-2">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-base leading-tight text-gray-900 line-clamp-1 pr-2" title={design.name}>
-                    {design.name}
-                  </h3>
-                  <span className="font-black text-base whitespace-nowrap">$32.99</span>
-                </div>
-
-                {/* Stats & Author */}
-                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-50">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 flex items-center justify-center text-[10px] font-bold text-gray-600">
-                      {design.author.charAt(0).toUpperCase()}
-                    </div>
-                    <p className="text-xs text-gray-500 font-medium truncate max-w-[80px]">{design.author}</p>
-                  </div>
-                  <div className="flex items-center text-[10px] font-semibold text-gray-400 space-x-2">
-                    <span className="flex items-center bg-gray-50 px-2 py-1 rounded-md">
-                      <i className="fa-solid fa-layer-group mr-1 sm-icon"></i> T-Shirt
+                  ) : (
+                    /* Show generated/API designs with T-Shirt mockup */
+                    <>
+                      <svg
+                        viewBox="0 0 400 450"
+                        className="w-[90%] h-[90%] transition-transform duration-500 group-hover:scale-105"
+                      >
+                        <path
+                          d="M100 60 L60 80 L20 140 L60 160 L80 130 L80 400 L320 400 L320 130 L340 160 L380 140 L340 80 L300 60 L260 80 C240 100 160 100 140 80 L100 60 Z"
+                          fill="#FFFFFF"
+                          stroke="#e5e5e5"
+                          strokeWidth="2"
+                        />
+                        <ellipse cx="200" cy="75" rx="60" ry="20" fill="#FFFFFF" stroke="#e5e5e5" strokeWidth="1" />
+                        <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f9f9f9" stroke="#eee" strokeWidth="1" />
+                      </svg>
+                      <img
+                        src={design.imageUrl}
+                        alt={design.name}
+                        className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[26%] h-auto object-contain transition-transform duration-500 group-hover:scale-110"
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                      />
+                    </>
+                  )}
+                  {design.isAI && (
+                    <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider border border-white/10">
+                      <i className="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Art
                     </span>
-                  </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 rounded-[1.5rem]"></div>
                 </div>
 
-                {/* Action Button */}
-                <button
-                  onClick={() => handleOrder(design)}
-                  className="w-full flex items-center justify-center space-x-2 bg-gray-900 text-white py-3 rounded-xl font-bold text-sm group-hover:bg-green-500 group-hover:text-black transition-all duration-300"
-                >
-                  <span>Order Now</span>
-                  <i className="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
-                </button>
+                {/* Product Info */}
+                <div className="px-2 pb-2">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-base leading-tight text-gray-900 line-clamp-1 pr-2" title={design.name}>
+                      {design.name}
+                    </h3>
+                    <span className="font-black text-base whitespace-nowrap">$32.99</span>
+                  </div>
+
+                  {/* Stats & Author */}
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-50">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 flex items-center justify-center text-[10px] font-bold text-gray-600">
+                        {design.author.charAt(0).toUpperCase()}
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium truncate max-w-[80px]">{design.author}</p>
+                    </div>
+                    <div className="flex items-center text-[10px] font-semibold text-gray-400 space-x-2">
+                      <span className="flex items-center bg-gray-50 px-2 py-1 rounded-md">
+                        <i className="fa-solid fa-layer-group mr-1 sm-icon"></i> T-Shirt
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <button
+                    onClick={() => handleOrder(design)}
+                    className="w-full flex items-center justify-center space-x-2 bg-gray-900 text-white py-3 rounded-xl font-bold text-sm group-hover:bg-green-500 group-hover:text-black transition-all duration-300"
+                  >
+                    <span>Order Now</span>
+                    <i className="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+                  </button>
+                </div>
               </div>
-            </div>
-          );
+            );
           })}
         </div>
 
