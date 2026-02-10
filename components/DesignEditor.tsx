@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { COLORS, SIZES } from '../constants';
+import { COLORS, SIZES, generateProductName } from '../constants';
 import { useApp } from '../App';
+import { api } from '../services/api';
 
 interface DesignEditorProps {
   initialImageUrl?: string;
@@ -9,12 +10,13 @@ interface DesignEditorProps {
 }
 
 const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDesignId }) => {
-  const { addToCart } = useApp();
+  const { addToCart, user } = useApp();
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedSize, setSelectedSize] = useState(SIZES[1]);
   const [designUrl, setDesignUrl] = useState(initialImageUrl || '');
   const [designId, setDesignId] = useState(initialDesignId || undefined);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleAddToCart = () => {
     if (!designUrl) return;
@@ -33,12 +35,34 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
     setTimeout(() => setIsSuccess(false), 3000);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setDesignUrl(event.target?.result as string);
+      reader.onload = async (event) => {
+        const imageDataUrl = event.target?.result as string;
+        setDesignUrl(imageDataUrl);
+        
+        // Save uploaded design to database
+        try {
+          const newDesign = await api.createDesign({
+            imageUrl: imageDataUrl,
+            name: generateProductName(),
+            author: user?.name || 'Anonymous Creator',
+            isAI: false // User uploaded, not AI generated
+          });
+          setDesignId(newDesign.id);
+          console.log("Uploaded design saved to gallery:", newDesign.id);
+        } catch (error) {
+          console.error("Failed to save uploaded design:", error);
+          // Design can still be used even if save fails
+        }
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        setIsUploading(false);
+        console.error("Failed to read file");
       };
       reader.readAsDataURL(file);
     }
@@ -134,10 +158,16 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
           <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Or Upload Own Art</h3>
           <label className="flex items-center space-x-3 cursor-pointer group">
             <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-gray-200 transition-colors">
-              <i className="fa-solid fa-upload text-gray-500"></i>
+              {isUploading ? (
+                <i className="fa-solid fa-circle-notch animate-spin text-gray-500"></i>
+              ) : (
+                <i className="fa-solid fa-upload text-gray-500"></i>
+              )}
             </div>
-            <span className="text-sm font-semibold text-gray-600 group-hover:text-black transition-colors underline underline-offset-4">Browse local files</span>
-            <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+            <span className="text-sm font-semibold text-gray-600 group-hover:text-black transition-colors underline underline-offset-4">
+              {isUploading ? 'Saving...' : 'Browse local files'}
+            </span>
+            <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
           </label>
         </div>
 
