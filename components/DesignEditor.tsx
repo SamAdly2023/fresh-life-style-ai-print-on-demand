@@ -43,7 +43,7 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
       reader.onload = async (event) => {
         const imageDataUrl = event.target?.result as string;
         setDesignUrl(imageDataUrl);
-        
+
         // Save uploaded design to database
         try {
           const newDesign = await api.createDesign({
@@ -72,37 +72,15 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto py-8">
       {/* Visualizer */}
       <div className="relative aspect-square bg-gray-100 rounded-3xl overflow-hidden flex items-center justify-center border border-gray-200 shadow-inner group">
-        {/* T-Shirt SVG Mockup */}
-        <svg
-          viewBox="0 0 400 450"
-          className="w-[85%] h-[85%] transition-transform duration-500 group-hover:scale-105"
-          style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.15))' }}
-        >
-          {/* T-Shirt Shape */}
-          <path
-            d="M100 60 L60 80 L20 140 L60 160 L80 130 L80 400 L320 400 L320 130 L340 160 L380 140 L340 80 L300 60 L260 80 C240 100 160 100 140 80 L100 60 Z"
-            fill={selectedColor.hex}
-            stroke="#ddd"
-            strokeWidth="2"
+        {designUrl ? (
+          /* Show the generated/uploaded image directly */
+          <img
+            src={designUrl}
+            alt="Your Design"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 p-4"
+            style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.15))' }}
           />
-          {/* Collar */}
-          <ellipse cx="200" cy="75" rx="60" ry="20" fill={selectedColor.hex} stroke="#ccc" strokeWidth="1" />
-          <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f5f5f5" stroke="#ddd" strokeWidth="1" />
-        </svg>
-
-        {/* Design Overlay - Centered on T-Shirt (lower position) */}
-        {designUrl && (
-          <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[28%] aspect-square pointer-events-none">
-            <img
-              src={designUrl}
-              alt="Design"
-              className="w-full h-full object-contain transition-opacity duration-300 group-hover:opacity-100"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-            />
-          </div>
-        )}
-
-        {!designUrl && (
+        ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
             <i className="fa-solid fa-cloud-arrow-up text-4xl mb-4"></i>
             <p className="font-medium">Upload or generate a design</p>

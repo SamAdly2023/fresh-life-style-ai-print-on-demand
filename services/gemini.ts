@@ -32,8 +32,8 @@ export class GeminiService {
       }
     }
 
-    // Add formatting for t-shirt design
-    const imagePrompt = `${enhancedPrompt}, high quality graphic design, centered composition, solid white background, suitable for t-shirt printing, digital art, vibrant colors`;
+    // Generate a t-shirt product image with the design printed on it
+    const imagePrompt = `A high-quality product photo of a white t-shirt with this design printed on the chest: ${enhancedPrompt}. Professional product photography, clean white background, t-shirt laid flat or on invisible mannequin, the design is clearly visible and centered on the shirt, studio lighting, e-commerce style product shot`;
 
     // Try Grok first if API key is available
     if (XAI_API_KEY) {
@@ -66,12 +66,12 @@ export class GeminiService {
   }
 
   private async enhancePromptWithGemini(userPrompt: string): Promise<string> {
-    const systemPrompt = `You are a creative t-shirt design prompt enhancer. Take the user's simple idea and transform it into a detailed, vivid prompt for AI image generation. Focus on:
-- Visual style (illustration, minimalist, vintage, etc.)
-- Color palette suggestions
-- Composition and layout
-- Artistic technique
-Keep the enhanced prompt concise (under 100 words) and focused on visual elements only. Do not include any explanations, just output the enhanced prompt.`;
+    const systemPrompt = `You are a creative t-shirt design prompt enhancer. Take the user's simple idea and transform it into a detailed, vivid description of a design that would look great printed on a t-shirt. Focus on:
+- Visual style (illustration, minimalist, vintage, streetwear, etc.)
+- Color palette that works well on apparel
+- Clear, bold composition suitable for clothing
+- Artistic technique (vector, hand-drawn, graphic, etc.)
+Keep the enhanced prompt concise (under 80 words) and focused on describing the design itself. Do not include any explanations, just output the enhanced design description.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -99,11 +99,11 @@ Keep the enhanced prompt concise (under 100 words) and focused on visual element
 
     const data = await response.json();
     const enhanced = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
+
     if (enhanced && enhanced.trim()) {
       return enhanced.trim();
     }
-    
+
     return userPrompt; // Return original if enhancement fails
   }
 

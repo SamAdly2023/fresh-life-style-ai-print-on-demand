@@ -82,7 +82,16 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Database Setup - SQLite
-const dbPath = path.join(__dirname, 'database.sqlite');
+// Use DATABASE_PATH env var for persistent storage on Render, fallback to local path
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite');
+console.log('Database path:', dbPath);
+
+// Ensure the directory exists for the database
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new Database(dbPath);
 
 // Enable foreign keys
