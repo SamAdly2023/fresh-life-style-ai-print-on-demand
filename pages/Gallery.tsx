@@ -49,31 +49,45 @@ const Gallery: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {designs.map((design) => (
+          {designs.map((design) => {
+            // Check if design is from local product-images folder (already has t-shirt in image)
+            const isLocalProductImage = design.imageUrl.startsWith('/product-images/');
+            
+            return (
             <div key={design.id} className="group bg-white rounded-[2rem] p-3 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-50 hover:border-gray-100">
-              {/* Image Container with T-Shirt Mockup */}
+              {/* Image Container */}
               <div className="aspect-square rounded-[1.5rem] overflow-hidden bg-gray-100 mb-4 relative flex items-center justify-center">
-                {/* T-Shirt SVG Background */}
-                <svg
-                  viewBox="0 0 400 450"
-                  className="w-[90%] h-[90%] transition-transform duration-500 group-hover:scale-105"
-                >
-                  <path
-                    d="M100 60 L60 80 L20 140 L60 160 L80 130 L80 400 L320 400 L320 130 L340 160 L380 140 L340 80 L300 60 L260 80 C240 100 160 100 140 80 L100 60 Z"
-                    fill="#FFFFFF"
-                    stroke="#e5e5e5"
-                    strokeWidth="2"
+                {isLocalProductImage ? (
+                  /* Show local product images as-is (they already have t-shirt) */
+                  <img
+                    src={design.imageUrl}
+                    alt={design.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <ellipse cx="200" cy="75" rx="60" ry="20" fill="#FFFFFF" stroke="#e5e5e5" strokeWidth="1" />
-                  <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f9f9f9" stroke="#eee" strokeWidth="1" />
-                </svg>
-                {/* Design on T-Shirt */}
-                <img
-                  src={design.imageUrl}
-                  alt={design.name}
-                  className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[28%] h-auto object-contain transition-transform duration-500 group-hover:scale-110"
-                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-                />
+                ) : (
+                  /* Show generated/API designs with T-Shirt mockup */
+                  <>
+                    <svg
+                      viewBox="0 0 400 450"
+                      className="w-[90%] h-[90%] transition-transform duration-500 group-hover:scale-105"
+                    >
+                      <path
+                        d="M100 60 L60 80 L20 140 L60 160 L80 130 L80 400 L320 400 L320 130 L340 160 L380 140 L340 80 L300 60 L260 80 C240 100 160 100 140 80 L100 60 Z"
+                        fill="#FFFFFF"
+                        stroke="#e5e5e5"
+                        strokeWidth="2"
+                      />
+                      <ellipse cx="200" cy="75" rx="60" ry="20" fill="#FFFFFF" stroke="#e5e5e5" strokeWidth="1" />
+                      <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f9f9f9" stroke="#eee" strokeWidth="1" />
+                    </svg>
+                    <img
+                      src={design.imageUrl}
+                      alt={design.name}
+                      className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[26%] h-auto object-contain transition-transform duration-500 group-hover:scale-110"
+                      style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                    />
+                  </>
+                )}
                 {design.isAI && (
                   <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider border border-white/10">
                     <i className="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Art
@@ -116,7 +130,8 @@ const Gallery: React.FC = () => {
                 </button>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         <div className="mt-20 py-10 bg-black rounded-[3rem] px-12 flex flex-col md:flex-row items-center justify-between">

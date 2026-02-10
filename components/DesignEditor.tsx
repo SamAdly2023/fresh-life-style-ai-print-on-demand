@@ -66,9 +66,9 @@ const DesignEditor: React.FC<DesignEditorProps> = ({ initialImageUrl, initialDes
           <ellipse cx="200" cy="75" rx="45" ry="15" fill="#f5f5f5" stroke="#ddd" strokeWidth="1" />
         </svg>
 
-        {/* Design Overlay - Centered on T-Shirt */}
+        {/* Design Overlay - Centered on T-Shirt (lower position) */}
         {designUrl && (
-          <div className="absolute top-[28%] left-1/2 -translate-x-1/2 w-[30%] aspect-square pointer-events-none">
+          <div className="absolute top-[38%] left-1/2 -translate-x-1/2 w-[28%] aspect-square pointer-events-none">
             <img
               src={designUrl}
               alt="Design"
