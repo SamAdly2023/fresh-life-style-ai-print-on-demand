@@ -49,8 +49,9 @@ const Home: React.FC = () => {
         <div className="absolute inset-0 opacity-40">
           <img
             src="https://images.unsplash.com/photo-1554568218-0f1715e72254?auto=format&fit=crop&q=80&w=2000"
-            alt="Hero background"
+            alt="AI-powered custom t-shirt design studio background - Fresh Life Style print on demand"
             className="w-full h-full object-cover"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
         </div>
@@ -88,9 +89,10 @@ const Home: React.FC = () => {
         <div className="hidden lg:block absolute right-[-10%] top-1/2 -translate-y-1/2 w-[50%] animate-pulse-slow">
           <img
             src="https://www.freeiconspng.com/uploads/t-shirt-png-t-shirt-png-image-32.png"
-            alt="Floating Shirt"
+            alt="Custom AI-designed t-shirt mockup - create your unique design with Fresh Life Style"
             className="w-full h-auto drop-shadow-[0_35px_35px_rgba(0,0,0,0.5)] transform rotate-12"
             style={{ filter: 'brightness(0.9) contrast(1.1)' }}
+            loading="eager"
           />
         </div>
       </section>
@@ -139,8 +141,9 @@ const Home: React.FC = () => {
                 <div className="aspect-square rounded-[1.5rem] overflow-hidden bg-gray-100 mb-4 relative">
                   <img
                     src={design.imageUrl}
-                    alt={design.name}
+                    alt={`${design.name} - AI-generated custom t-shirt design by ${design.author}`}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    loading="lazy"
                   />
                   {design.isAI && (
                     <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider border border-white/10">

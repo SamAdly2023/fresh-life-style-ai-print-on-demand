@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://freshlifestyle.com/</loc>
+    <lastmod>2026-02-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://freshlifestyle.com/og-image.jpg</image:loc>
+      <image:title>Fresh Life Style - AI-Powered Custom T-Shirt Design</image:title>
+      <image:caption>Create unique custom t-shirts with AI-generated designs</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Gallery Page -->
+  <url>
+    <loc>https://freshlifestyle.com/gallery</loc>
+    <lastmod>2026-02-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://freshlifestyle.com/product-images/gallery-preview.jpg</image:loc>
+      <image:title>AI-Generated Design Gallery</image:title>
+      <image:caption>Browse trending AI-generated t-shirt designs</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Create/Design Page -->
+  <url>
+    <loc>https://freshlifestyle.com/create</loc>
+    <lastmod>2026-02-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://freshlifestyle.com/product-images/create-preview.jpg</image:loc>
+      <image:title>AI T-Shirt Design Creator</image:title>
+      <image:caption>Design your custom t-shirt with AI</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Checkout Page -->
+  <url>
+    <loc>https://freshlifestyle.com/checkout</loc>
+    <lastmod>2026-02-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Dashboard Page -->
+  <url>
+    <loc>https://freshlifestyle.com/dashboard</loc>
+    <lastmod>2026-02-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+</urlset>

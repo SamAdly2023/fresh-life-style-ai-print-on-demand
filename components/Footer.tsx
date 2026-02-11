@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
           <div className="col-span-1 md:col-span-1">
-             <Link to="/" className="flex flex-col mb-8">
+            <Link to="/" className="flex flex-col mb-8">
               <span className="logo-font text-4xl font-black tracking-tighter text-white uppercase -mb-2">Fresh Life</span>
               <span className="text-[12px] font-bold tracking-[0.3em] uppercase text-green-500 self-end">Style.com</span>
             </Link>
@@ -61,7 +61,7 @@ const Footer: React.FC = () => {
 
         <div className="pt-10 border-t border-gray-900 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-[10px] font-black tracking-widest uppercase mb-4 md:mb-0">
-            &copy; 2024 FRESH LIFE STYLE. ALL RIGHTS RESERVED. POWERED BY GEMINI AI.
+            &copy; 2026 FRESH LIFE STYLE. ALL RIGHTS RESERVED. POWERED BY GEMINI AI.
           </p>
           <div className="flex space-x-6 text-[10px] font-black tracking-widest uppercase text-gray-600">
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
